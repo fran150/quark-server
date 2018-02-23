@@ -1,0 +1,10 @@
+{
+    "database": {
+        "connectionLimit": 100,
+        "host": "localhost",
+        "user": "root",
+        "password": "29240228",
+        "database": "quark",
+        "debug": false
+    }
+}
