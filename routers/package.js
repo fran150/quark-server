@@ -5,8 +5,8 @@ var dataPackages = require('../data/packages');
 
 router.use(express.json());
 
-router.get('/:name', function(req, res, next) {
-    dataPackages.getPackage(req.params.name, function(packages) {
+router.get('/:name/:version', function(req, res, next) {
+    dataPackages.getPackage(req.params.name, req.params.version, function(packages) {
         res.json(packages);
     });    
 });

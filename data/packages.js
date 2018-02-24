@@ -1,13 +1,14 @@
 var mysql = require('mysql');
 var async = require('async');
 var config = require('../config.json');
+var semver = require('semver');
 
 function Packages() {
     var self = this;
 
     var pool = mysql.createPool(config.database);
 
-    this.query = function(sql, data, callback) {
+    function query(sql, data, callback) {
         pool.getConnection(function(err, connection) {
             if (err) throw err;
 
@@ -20,32 +21,54 @@ function Packages() {
         });
     }
 
-    this.getPackage = function(name, callback) {
+    this.getPackage = function(name, version, callback) {
         const sqlPackage = "SELECT * FROM package WHERE name = ?";
-        const sqlPath = "SELECT * FROM path WHERE packageName = ?";
-        const sqlShim = "SELECT * FROM shim WHERE packageName = ?";
+        const sqlPath = "SELECT name, path FROM path WHERE packageName = ? AND packageVersion = ?";
+        const sqlShim = "SELECT name, dep FROM shim WHERE packageName = ? AND packageVersion = ?";
 
-        self.query(sqlPackage, [name], function(packages) {
-            async.each(packages, function(package, packageCallback) {
-                async.parallel({
-                    paths: function (pathCallback) {
-                        self.query(sqlPath, [package.name, package.version], function(data) {
-                            pathCallback(null, data);
-                        });
-                    },
-                    shims: function (shimCallback) {
-                        self.query(sqlShim, [package.name, package.version], function(data) {
-                            shimCallback(null, data);
-                        });
-                    }
-                }, function (err, results) {
-                    package.paths = results.paths;
-                    package.shims = results.shims;
-                    packageCallback();
-                });
-            }, function(err) {
-                callback(packages);
-            })
+        query(sqlPackage, [name], function(packages) {
+            async.filter(packages, function(package, packageCallback) {
+                packageCallback(null, semver.satisfies(version, package.version));
+            }, function(err, results) {
+                if (results.length > 0) {
+                    var package = results[0];
+
+                    async.parallel({
+                        paths: function (pathCallback) {
+                            query(sqlPath, [package.name, package.version], function(data) {
+                                var paths = {};
+                                
+                                for (var i = 0; i < data.length; i++) {
+                                    paths[data[i].name] = data[i].path;
+                                }
+                                
+                                pathCallback(null, paths);
+                            });
+                        },
+                        shims: function (shimCallback) {
+                            query(sqlShim, [package.name, package.version], function(data) {
+                                var shims = {};
+    
+                                for (var i = 0; i < data.length; i++) {
+                                    if (!shims[data[i].name]) {
+                                        shims[data[i].name] = new Array();
+                                    }
+    
+                                    shims[data[i].name].push(data[i].dep);
+                                }
+                                
+                                shimCallback(null, shims);
+                            });
+                        }
+                    }, function (err, results) {
+                        package.paths = results.paths;
+                        package.shims = results.shims;
+                        callback(package);
+                    });    
+                } else {
+                    callback({});
+                }
+            });
         });
     }
 }
