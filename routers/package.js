@@ -11,4 +11,10 @@ router.get('/:name/:version', function(req, res, next) {
     });    
 });
 
+router.post('', function(req, res, next) {
+    dataPackages.getPackages(req.body, function(packages) {
+        res.json(packages);
+    });    
+});
+
 module.exports = router;
