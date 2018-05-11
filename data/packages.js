@@ -83,53 +83,55 @@ function Packages() {
             names.push(name);
         }
 
-        query(sqlPackage, [names], function(packages) {
-            async.filter(packages, function(package, packageCallback) {
-                packageCallback(null, semver.satisfies(search[package.name], package.version));
-            }, function(err, results) {
-                if (results.length > 0) {
-                    async.transform(results, {}, function(acc, package, index, detailsCallback) {
-                        async.parallel({
-                            paths: function (pathCallback) {
-                                query(sqlPath, [package.name, package.version], function(data) {
-                                    var paths = {};
-                                    
-                                    for (var i = 0; i < data.length; i++) {
-                                        paths[data[i].name] = data[i].path;
-                                    }
-                                    
-                                    pathCallback(null, paths);
-                                });
-                            },
-                            shims: function (shimCallback) {
-                                query(sqlShim, [package.name, package.version], function(data) {
-                                    var shims = {};
-        
-                                    for (var i = 0; i < data.length; i++) {
-                                        if (!shims[data[i].name]) {
-                                            shims[data[i].name] = new Array();
+        if (names.length) {
+            query(sqlPackage, [names], function(packages) {
+                async.filter(packages, function(package, packageCallback) {
+                    packageCallback(null, semver.satisfies(search[package.name].version, package.version));
+                }, function(err, results) {
+                    if (results.length > 0) {
+                        async.transform(results, {}, function(acc, package, index, detailsCallback) {
+                            async.parallel({
+                                paths: function (pathCallback) {
+                                    query(sqlPath, [package.name, package.version], function(data) {
+                                        var paths = {};
+                                        
+                                        for (var i = 0; i < data.length; i++) {
+                                            paths[data[i].name] = data[i].path;
                                         }
-        
-                                        shims[data[i].name].push(data[i].dep);
-                                    }
-                                    
-                                    shimCallback(null, shims);
-                                });
-                            }
-                        }, function (err, results) {
-                            package.paths = results.paths;
-                            package.shims = results.shims;
-                            acc[package.name] = package;
-                            detailsCallback(null);
-                        });        
-                    }, function(err, response) {
-                        callback(response);
-                    })
-                } else {
-                    callback({});
-                }
-            });
-        });
+                                        
+                                        pathCallback(null, paths);
+                                    });
+                                },
+                                shims: function (shimCallback) {
+                                    query(sqlShim, [package.name, package.version], function(data) {
+                                        var shims = {};
+            
+                                        for (var i = 0; i < data.length; i++) {
+                                            if (!shims[data[i].name]) {
+                                                shims[data[i].name] = new Array();
+                                            }
+            
+                                            shims[data[i].name].push(data[i].dep);
+                                        }
+                                        
+                                        shimCallback(null, shims);
+                                    });
+                                }
+                            }, function (err, results) {
+                                package.paths = results.paths;
+                                package.shims = results.shims;
+                                acc[package.name] = package;
+                                detailsCallback(null);
+                            });        
+                        }, function(err, response) {
+                            callback(response);
+                        })
+                    } else {
+                        callback({});
+                    }
+                });
+            });    
+        }
     }
     
 }
