@@ -1,4 +1,3 @@
-var mysql = require('mysql');
 var async = require('async');
 var config = require('../config.json');
 var semver = require('semver');
@@ -74,6 +73,7 @@ function Packages() {
 
     this.getPackages = function(search, callback) {
         const sqlPackage = "SELECT * FROM package WHERE name IN (?)";
+        const sqlVersion = "SELECT * FROM version WHERE packageName IN (?)";
         const sqlPath = "SELECT name, path FROM path WHERE packageName = ? AND packageVersion = ?";
         const sqlShim = "SELECT name, dep FROM shim WHERE packageName = ? AND packageVersion = ?";
 

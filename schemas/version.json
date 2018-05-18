@@ -1,0 +1,35 @@
+{
+    "id": "/version",
+    "type": "object",
+    "properties": {
+        "paths": {
+            "type": "object",
+            "required": true,
+            "patternProperties": {
+                ".*": {
+                    "type": "string",
+                    "required": true
+                }
+            }
+        },
+        "shim": {
+            "type": "object",
+            "patternProperties": {
+                ".*": {
+                    "type": "object",
+                    "required": true,
+                    "properties": {
+                        "deps": {
+                            "type": "array",
+                            "required": true,
+                            "items": {                                
+                                "type": "string",
+                                "required": true
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
