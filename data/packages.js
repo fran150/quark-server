@@ -1,137 +1,70 @@
 var async = require('async');
-var config = require('../config.json');
 var semver = require('semver');
+var Q = require('q');
+const MongoClient = require('mongodb').MongoClient
+
+var config = require('../config.json');
 
 function Packages() {
     var self = this;
 
-    var pool = mysql.createPool(config.database);
+    var database;
 
-    function query(sql, data, callback) {
-        pool.getConnection(function(err, connection) {
-            if (err) throw err;
+    function db(reject) {
+        if (!database) {
+            reject(new Error("Disconnected from database"));
+        } else {
+            return database;
+        }
+    }
 
-            connection.query(sql, data, function(err, data) {
-                connection.release();
-                if (err) throw err;
+    this.connect = function() {
+        return Q.Promise(function(resolve, reject) {
+            console.log("Connecting: " + config.connection);
 
-                callback(data);
+            MongoClient.connect(config.connection, function(err, client) {
+                if (err) {
+                    reject(new Error("Database connection error"));
+                } else {                    
+                    database = client.db(config.database);
+                    resolve(db);
+                }
             });
         });
     }
 
-    this.getPackage = function(name, version, callback) {
-        const sqlPackage = "SELECT * FROM package WHERE name = ?";
-        const sqlPath = "SELECT name, path FROM path WHERE packageName = ? AND packageVersion = ?";
-        const sqlShim = "SELECT name, dep FROM shim WHERE packageName = ? AND packageVersion = ?";
-
-        query(sqlPackage, [name], function(packages) {
-            async.filter(packages, function(package, packageCallback) {
-                packageCallback(null, semver.satisfies(version, package.version));
-            }, function(err, results) {
-                if (results.length > 0) {
-                    var package = results[0];
-
-                    async.parallel({
-                        paths: function (pathCallback) {
-                            query(sqlPath, [package.name, package.version], function(data) {
-                                var paths = {};
-                                
-                                for (var i = 0; i < data.length; i++) {
-                                    paths[data[i].name] = data[i].path;
-                                }
-                                
-                                pathCallback(null, paths);
-                            });
-                        },
-                        shims: function (shimCallback) {
-                            query(sqlShim, [package.name, package.version], function(data) {
-                                var shims = {};
-    
-                                for (var i = 0; i < data.length; i++) {
-                                    if (!shims[data[i].name]) {
-                                        shims[data[i].name] = new Array();
-                                    }
-    
-                                    shims[data[i].name].push(data[i].dep);
-                                }
-                                
-                                shimCallback(null, shims);
-                            });
-                        }
-                    }, function (err, results) {
-                        package.paths = results.paths;
-                        package.shims = results.shims;
-                        callback(package);
-                    });    
+    this.getPackage = function(name) {
+        return Q.Promise(function(resolve, reject) {
+            console.log("Querying Package " + name);
+            
+            db(reject).collection('packages').find({ name: name }, function(err, result) {
+                if (!err) {
+                    resolve(result);
                 } else {
-                    callback({});
+                    reject(err);
                 }
             });
         });
     }
 
     this.getPackages = function(search, callback) {
-        const sqlPackage = "SELECT * FROM package WHERE name IN (?)";
-        const sqlVersion = "SELECT * FROM version WHERE packageName IN (?)";
-        const sqlPath = "SELECT name, path FROM path WHERE packageName = ? AND packageVersion = ?";
-        const sqlShim = "SELECT name, dep FROM shim WHERE packageName = ? AND packageVersion = ?";
+        return Q.Promise(function(resolve, reject) {
+            var names = new Array();
 
-        var names = new Array();
+            for (var name in search) {
+                names.push(name);
+            }
+    
+            if (names.length) {
+    
+            }
+        });
+    }
 
-        for (var name in search) {
-            names.push(name);
-        }
+    this.addPackage = function(package) {
+        return Q.Promise(function(resolve, reject) {
 
-        if (names.length) {
-            query(sqlPackage, [names], function(packages) {
-                async.filter(packages, function(package, packageCallback) {
-                    packageCallback(null, semver.satisfies(search[package.name].version, package.version));
-                }, function(err, results) {
-                    if (results.length > 0) {
-                        async.transform(results, {}, function(acc, package, index, detailsCallback) {
-                            async.parallel({
-                                paths: function (pathCallback) {
-                                    query(sqlPath, [package.name, package.version], function(data) {
-                                        var paths = {};
-                                        
-                                        for (var i = 0; i < data.length; i++) {
-                                            paths[data[i].name] = data[i].path;
-                                        }
-                                        
-                                        pathCallback(null, paths);
-                                    });
-                                },
-                                shims: function (shimCallback) {
-                                    query(sqlShim, [package.name, package.version], function(data) {
-                                        var shims = {};
-            
-                                        for (var i = 0; i < data.length; i++) {
-                                            if (!shims[data[i].name]) {
-                                                shims[data[i].name] = new Array();
-                                            }
-            
-                                            shims[data[i].name].push(data[i].dep);
-                                        }
-                                        
-                                        shimCallback(null, shims);
-                                    });
-                                }
-                            }, function (err, results) {
-                                package.paths = results.paths;
-                                package.shims = results.shims;
-                                acc[package.name] = package;
-                                detailsCallback(null);
-                            });        
-                        }, function(err, response) {
-                            callback(response);
-                        })
-                    } else {
-                        callback({});
-                    }
-                });
-            });    
-        }
+        });
     }
     
 }
