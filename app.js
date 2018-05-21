@@ -1,6 +1,6 @@
 var express = require("express");
-var packagesRouter = require("./routers/package");
-var data = require('./data/packages');
+var packagesRouter = require("./routers/package.router");
+var data = require('./data/packages.data');
 
 var app = express();
 
