@@ -1,6 +1,7 @@
 var async = require('async');
 var semver = require('semver');
 var Q = require('q');
+var chalk = require('chalk');
 const MongoClient = require('mongodb').MongoClient
 
 var config = require('../config.json');
@@ -20,14 +21,15 @@ function Packages() {
 
     this.connect = function() {
         return Q.Promise(function(resolve, reject) {
-            console.log("Connecting: " + config.connection);
+            console.log(chalk.blue.bold("Connecting: " + config.connection));
 
             MongoClient.connect(config.connection, function(err, client) {
                 if (err) {
-                    reject(new Error("Database connection error"));
+                    console.log(chalk.red.bold("Database connection error"));
+                    reject(err);
                 } else {                    
                     database = client.db(config.database);
-                    resolve(db);
+                    resolve(database);
                 }
             });
         });
