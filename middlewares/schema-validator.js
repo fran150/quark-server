@@ -1,11 +1,13 @@
 
+var logger = require("../utils/logger");
+
 function SchemaValidator(err, req, res, next) {
  
     var responseData;
  
     if (err.name === 'JsonSchemaValidation') {
         // Log the error however you please
-        console.log(err.message);
+        logger.error(err.message);
         // logs "express-jsonschema: Invalid data found"
  
         // Set a bad request http response status or whatever you want

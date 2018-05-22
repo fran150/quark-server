@@ -1,9 +1,9 @@
 var async = require('async');
 var semver = require('semver');
 var Q = require('q');
-var chalk = require('chalk');
 const MongoClient = require('mongodb').MongoClient
 
+var logger = require('../utils/logger');
 var config = require('../config.json');
 
 function Packages() {
@@ -13,7 +13,9 @@ function Packages() {
 
     function db(reject) {
         if (!database) {
-            reject(new Error("Disconnected from database"));
+            var msg = "Disconnected from database";
+            logger.error(msg);
+            reject(new Error(msg));
         } else {
             return database;
         }
@@ -21,14 +23,17 @@ function Packages() {
 
     this.connect = function() {
         return Q.Promise(function(resolve, reject) {
-            console.log(chalk.blue.bold("Connecting: " + config.connection));
+            logger.info("Connecting to database");
 
             MongoClient.connect(config.connection, function(err, client) {
                 if (err) {
-                    console.log(chalk.red.bold("Database connection error"));
+                    logger.error("Database connection error");
                     reject(err);
                 } else {                    
                     database = client.db(config.database);
+
+                    logger.info("Connected to database");
+                    
                     resolve(database);
                 }
             });
@@ -39,10 +44,19 @@ function Packages() {
         return Q.Promise(function(resolve, reject) {        
             var packages = db(reject).collection('packages');
 
+            logger.data("Trying to find package " + name);
+
             packages.findOne({ name: name }, function(err, data) {
                 if (!err) {
+                    if (data) {
+                        logger.data("Package found!");
+                    } else {
+                        logger.data("Package NOT found!");
+                    }                    
+                    
                     resolve(data);
                 } else {
+                    logger.error("Error trying to find package");
                     reject(err);
                 }
             });
@@ -53,18 +67,31 @@ function Packages() {
         return Q.Promise(function(resolve, reject) {        
             var packages = db(reject).collection('packages');
 
+            logger.data("Trying to find package [" + name + "] version [" + version + "]");
+
             packages.findOne({ name: name }, function(err, data) {
                 if (!err) {
+                    var count = 0;
+
                     if (data.versions) {
                         for (var packageVersion in data.versions) {
-                            if (!semver.satisfies(version, packageVersion)) {
-                                delete data.versions[packageVersion];
+                            try {
+                                if (!semver.satisfies(version, packageVersion)) {                                    
+                                    delete data.versions[packageVersion];
+                                } else {
+                                    count++;
+                                }
+                            } catch(ex) {
+                                reject("Specified version is invalid");
                             }
                         }                        
                     }
-
+                    
+                    logger.data("Found a package with " + count + " statisfying versions");
+                    
                     resolve(data);
                 } else {
+                    logger.error("Error trying to find package version");
                     reject(err);
                 }
             });
@@ -80,27 +107,41 @@ function Packages() {
             }
     
             if (names.length) {
+                logger.data("Trying to find " + names.length + " packages");
+
                 var collection = db(reject).collection('packages');
 
                 collection.find({ name: { $in: names } }).toArray(function(err, data) {
                     if (!err) {
+                        logger.data("Found " + data.length + " packages");
+
+                        var count = 0;
+                        
                         for (var i = 0; i < data.length; i++) {
                             var package = data[i];
         
                             if (package.versions) {
                                 for (var packageVersion in package.versions) {    
-                                    if (!semver.satisfies(search[name].version, packageVersion)) {
-                                        delete package.versions[packageVersion];
-                                    } else {
-                                        for (var property in package.versions[packageVersion]) {
-                                            package[property] = package.versions[packageVersion][property];
-                                        }
+                                    try {
+                                        if (!semver.satisfies(search[package.name].version, packageVersion)) {
+                                            delete package.versions[packageVersion];
+                                        } else {
+                                            count++;
+
+                                            for (var property in package.versions[packageVersion]) {
+                                                package[property] = package.versions[packageVersion][property];
+                                            }
+                                        }    
+                                    } catch(ex) {
+                                        reject("Specified version [" + search[package.name].version + "] for " + package.name + " is invalid");
                                     }
                                 }
                             }
                             
                             delete package.versions;
                         }
+
+                        logger.data("Found " + count + " satisfying versions");
     
                         resolve(data);    
                     } else {
@@ -108,6 +149,7 @@ function Packages() {
                     }
                 });
             } else {
+                logger.data("No specified package list to search");
                 resolve();
             }
         });
