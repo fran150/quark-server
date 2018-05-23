@@ -8,11 +8,6 @@
             "description": "Name of the bower package"
 
         },
-        "author": {
-            "type": "string",
-            "required": true,
-            "description": "Uploader of quark configuration"
-        },
         "versions": {
             "type": "object",
             "patternProperties": {

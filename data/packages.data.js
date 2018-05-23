@@ -1,10 +1,14 @@
+var url = require('url');
+var path = require('path');
 var async = require('async');
 var semver = require('semver');
 var Q = require('q');
+const octokit = require('@octokit/rest')();
 const MongoClient = require('mongodb').MongoClient
 
 var logger = require('../utils/logger');
 var config = require('../config.json');
+var bower = require('../utils/bower');
 
 function Packages() {
     var self = this;
@@ -155,9 +159,52 @@ function Packages() {
         });
     }
 
-    this.addPackage = function(package) {
-        return Q.Promise(function(resolve, reject) {
+    function validateCollaborator(package, token, resolve, reject) {        
+        logger.data("Authenticating token");
+        
+        octokit.authenticate({
+            type: 'oauth',
+            token: token
+        });
+        
+        Q.all([self.getPackage(package.name), bower.lookup(package.name)]).then(function(results) {
+            var quarkData = results[0];
+            var bowerData = results[1];
 
+            var urlParts = url.parse(bowerData.url);
+            var pathParts = urlParts.pathname.split('/');
+            var owner = pathParts[1];
+
+            var repo = path.basename(pathParts[2], '.git');
+
+            octokit.users.get({}).then(function(user) {                 
+                octokit.repos.getCollaborators({
+                    owner: owner,
+                    repo: repo,
+                    collabuser: user.login
+                }).then(function(data) {
+                    resolve(data);
+                })
+                .catch(function(error) {
+                    reject(error);
+                })                    
+            })
+            .catch(function(error) {
+                reject(error);
+            })
+        })
+        .catch(function(error) {
+            reject(error);
+        }) 
+    }
+
+    function insert(package, collection, resolve, reject) {
+        
+    }
+
+    this.addPackage = function(package, token) {
+        return Q.Promise(function(resolve, reject) {
+            validateCollaborator(package, token, resolve, reject);
         });
     }
     

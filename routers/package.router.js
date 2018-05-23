@@ -39,8 +39,8 @@ router.get('/:name/:version', function(req, res, next) {
     })
 });
 
-router.post('/', validate({ body: PackageRequestSchema }), function(req, res, next) {
-    logger.post("/package");
+router.post('/search', validate({ body: PackageRequestSchema }), function(req, res, next) {
+    logger.post("/package/search");
 
     data.getPackages(req.body).then(function(list) {
         res.json(list);
@@ -52,8 +52,23 @@ router.post('/', validate({ body: PackageRequestSchema }), function(req, res, ne
     })    
 });
 
-router.post('', validate({body: PackageSchema}, [VersionSchema]), function(req, res, next) {
-    res.json(req.body);
+router.post('', validate({ body: PackageSchema }, [VersionSchema]), function(req, res, next) {
+    logger.post("/package/search");
+
+    if (!req.header("token")) {
+        logger.error("Token not specified");
+        res.status(401);
+        res.json("Access token not specified");
+    } else {
+        data.addPackage(req.body, req.header("token")).then(function(result) {
+            res.json(result);
+        })
+        .catch(function(error) {
+            logger.error(error);
+            res.status(500);
+            res.json(error);
+        })
+    }
 });
 
 router.use(schemaValidator);
