@@ -60,7 +60,7 @@ router.post('', validate({ body: PackageSchema }, [VersionSchema]), function(req
         res.status(401);
         res.json("Access token not specified");
     } else {
-        data.addPackage(req.body, req.header("token")).then(function(result) {
+        data.registerPackage(req.body, req.header("token")).then(function(result) {
             res.json(result);
         })
         .catch(function(error) {

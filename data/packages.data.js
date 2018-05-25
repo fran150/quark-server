@@ -159,52 +159,152 @@ function Packages() {
         });
     }
 
-    function validateCollaborator(package, token, resolve, reject) {        
-        logger.data("Authenticating token");
-        
-        octokit.authenticate({
-            type: 'oauth',
-            token: token
-        });
-        
-        Q.all([self.getPackage(package.name), bower.lookup(package.name)]).then(function(results) {
-            var quarkData = results[0];
-            var bowerData = results[1];
+    function validateCollaborator(package, token, bowerData) {
+        return Q.Promise(function(resolve, reject) {
+            logger.data("Authenticating token");
+            
+            octokit.authenticate({
+                type: 'oauth',
+                token: token
+            });    
 
-            var urlParts = url.parse(bowerData.url);
-            var pathParts = urlParts.pathname.split('/');
-            var owner = pathParts[1];
+            Q.all([self.getPackage(package.name), bower.lookup(package.name)]).then(function(results) {
+                var quarkData = results[0];
+                var bowerData = results[1];
 
-            var repo = path.basename(pathParts[2], '.git');
+                if (!bowerData) {
+                    reject("Bower package not found");                    
+                    return;
+                }
 
-            octokit.users.get({}).then(function(user) {                 
-                octokit.repos.getCollaborators({
-                    owner: owner,
-                    repo: repo,
-                    collabuser: user.login
-                }).then(function(data) {
-                    resolve(data);
+                var urlParts = url.parse(bowerData.url);
+                var pathParts = urlParts.pathname.split('/');
+                var owner = pathParts[1];
+
+                var repo = path.basename(pathParts[2], '.git');
+
+                logger.data("Get logged user");
+
+                octokit.users.get({}).then(function(user) {
+                    var login = user.data.login;                    
+
+                    logger.data("Found logged user: " + login);
+
+                    if (!quarkData) {
+                        logger.data("Quark package not found. User authorized to insert");
+                        resolve({
+                            login: login,
+                            valid: true,
+                            quarkData: undefined
+                        });
+                    } else {
+                        if (quarkData.author) {
+                            logger.data("Checking if user is who registered the package");
+
+                            if (quarkData.author == login) {
+                                logger.data("The specified user is who registered the package");
+
+                                resolve({
+                                    login: login,
+                                    valid: true,
+                                    quarkData: quarkData
+                                });
+                                return
+                            } else {
+                                logger.data("The specified user is not the owner of the package");
+                            }                           
+                        }
+
+                        logger.data("Checking if user is a package's repository collaborator");
+
+                        octokit.repos.getCollaborators({
+                            login: login,
+                            owner: owner,
+                            repo: repo,
+                        }).then(function(collabs) {
+                            for (var i = 0; i <= collabs.data.length; i++) {
+                                var collaborator = collabs.data[i].login;
+
+                                if (collaborator == login) {
+                                    logger.data("The specified user is a collaborator of the repository");
+                                    
+                                    resolve({
+                                        login: login,
+                                        valid: true,
+                                        quarkData: quarkData
+                                    });
+
+                                    return;
+                                }
+                            }
+
+                            logger.data("The specified user is NOT a collaborator of the repository");
+
+                            resolve({
+                                login: login,
+                                valid: false,
+                                quarkData: quarkData
+                            });
+                        })
+                        .catch(function(error) {
+                            reject(error);
+                        });
+                    }
                 })
                 .catch(function(error) {
                     reject(error);
-                })                    
+                });                    
+                
+            })
+            .catch(function(error) {
+                reject(error);
+            });
+        });
+    }
+
+    this.registerPackage = function(package, token) {
+        return Q.Promise(function(resolve, reject) {
+            validateCollaborator(package, token).then(function(data) {
+                if (data.valid) {                    
+                    var collection = db(reject).collection('packages');
+
+                    if (!data.quarkData) {
+                        logger.data("Inserting specified package");
+
+                        package.author = data.login;
+                        package.created = new Date();
+
+                        collection.insertOne(package, function(err, result) {
+                            if (err) {
+                                reject(err);         
+                            } else {
+                                logger.info("Package Inserted!");
+                                resolve(true);
+                            }
+                        });
+                    } else {
+                        logger.data("Updating specified package");
+
+                        package.author = data.quarkData.author;
+                        package.created = data.quarkData.created;
+
+                        package.updated = new Date();
+                        collection.replaceOne({ name: package.name }, package, function(err, result) {
+                            if (err) {
+                                reject(err);                                
+                            } else {
+                                logger.info("Package Updated!");
+                                resolve(true);
+                            }                            
+                        })
+                    }
+                } else {
+                    reject("The specified user is not valid or can't edit this quark package");
+                }
             })
             .catch(function(error) {
                 reject(error);
             })
-        })
-        .catch(function(error) {
-            reject(error);
-        }) 
-    }
-
-    function insert(package, collection, resolve, reject) {
-        
-    }
-
-    this.addPackage = function(package, token) {
-        return Q.Promise(function(resolve, reject) {
-            validateCollaborator(package, token, resolve, reject);
         });
     }
     
