@@ -4,17 +4,19 @@
     "properties": {
         "name": {
             "type": "string",
-            "required": true,
-            "description": "Name of the bower package"
+            "required": true
 
         },
         "versions": {
             "type": "object",
+            "required": true,
             "patternProperties": {
-                ".*": {
+                ".*": {                    
                     "$ref": "/version"
                 }                
-            }
+            },
+            "additionalProperties": false,
+            "minProperties": 1
         }
     }
 }

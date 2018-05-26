@@ -10,7 +10,9 @@
                     "type": "string",
                     "required": true
                 }
-            }
+            },
+            "additionalProperties": false,
+            "minProperties": 1
         },
         "shim": {
             "type": "object",
@@ -29,7 +31,10 @@
                         }
                     }
                 }
-            }
+            },
+            "additionalProperties": false,
+            "minProperties": 1
         }
-    }
+    },
+    "additionalProperties": false
 }
