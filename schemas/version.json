@@ -18,17 +18,11 @@
             "type": "object",
             "patternProperties": {
                 ".*": {
-                    "type": "object",
+                    "type": "array",
                     "required": true,
-                    "properties": {
-                        "deps": {
-                            "type": "array",
-                            "required": true,
-                            "items": {                                
-                                "type": "string",
-                                "required": true
-                            }
-                        }
+                    "items": {                                
+                        "type": "string",
+                        "required": true
                     }
                 }
             },
