@@ -53,7 +53,7 @@ router.post('/search', validate({ body: PackageRequestSchema }), function(req, r
 });
 
 router.post('', validate({ body: PackageSchema }, [VersionSchema]), function(req, res, next) {
-    logger.post("/package/search");
+    logger.post("/package");
 
     if (!req.header("token")) {
         logger.error("Token not specified");
@@ -64,9 +64,19 @@ router.post('', validate({ body: PackageSchema }, [VersionSchema]), function(req
             res.json(result);
         })
         .catch(function(error) {
-            logger.error(error);
-            res.status(500);
-            res.json(error);
+            if (error.data) {
+                logger.error(error.data);
+            } else {
+                logger.error(error);
+            }
+
+            if (error.type && error.type == "login") {
+                res.status(401);
+            } else {
+                res.status(500);
+            }
+
+            res.json(error);                    
         })
     }
 });

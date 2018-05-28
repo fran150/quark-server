@@ -191,7 +191,7 @@ function Packages() {
                     logger.data("Found logged user: " + login);
 
                     if (!quarkData) {
-                        logger.data("Quark package not found. User authorized to insert");
+                        logger.data("Quark package not found. Will insert new package");
                         resolve({
                             login: login,
                             valid: true,
@@ -276,7 +276,7 @@ function Packages() {
 
                         collection.insertOne(package, function(err, result) {
                             if (err) {
-                                reject(err);         
+                                reject({ type: 'unknown', data: err });         
                             } else {
                                 logger.info("Package Inserted!");
                                 resolve(true);
@@ -291,7 +291,7 @@ function Packages() {
                         package.updated = new Date();
                         collection.replaceOne({ name: package.name }, package, function(err, result) {
                             if (err) {
-                                reject(err);                                
+                                reject({ type: 'unknown', data: err });                                
                             } else {
                                 logger.info("Package Updated!");
                                 resolve(true);
@@ -299,11 +299,15 @@ function Packages() {
                         })
                     }
                 } else {
-                    reject("The specified user is not valid or can't edit this quark package");
+                    reject({ type: 'login', data: "The specified user is not valid or can't edit this quark package"});
                 }
             })
             .catch(function(error) {
-                reject(error);
+                if (error.code && error.code >= 400 && error.code <= 499) {
+                    reject({ type: 'login', data: "The specified user is not valid or can't edit this quark package" });
+                } else {
+                    reject({ type: 'unknown', data: error });
+                }                
             })
         });
     }
