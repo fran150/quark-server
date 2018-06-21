@@ -1,52 +1,19 @@
 var url = require('url');
 var path = require('path');
-var async = require('async');
 var semver = require('semver');
 var Q = require('q');
 const octokit = require('@octokit/rest')();
-const MongoClient = require('mongodb').MongoClient
 
 var logger = require('../utils/logger');
-var config = require('../config.json');
+var connector = require('./connector');
 var bower = require('../utils/bower');
 
 function Packages() {
     var self = this;
 
-    var database;
-
-    function db(reject) {
-        if (!database) {
-            var msg = "Disconnected from database";
-            logger.error(msg);
-            reject(new Error(msg));
-        } else {
-            return database;
-        }
-    }
-
-    this.connect = function() {
-        return Q.Promise(function(resolve, reject) {
-            logger.info("Connecting to database");
-
-            MongoClient.connect(config.connection, function(err, client) {
-                if (err) {
-                    logger.error("Database connection error");
-                    reject(err);
-                } else {                    
-                    database = client.db(config.database);
-
-                    logger.info("Connected to database");
-                    
-                    resolve(database);
-                }
-            });
-        });
-    }
-
     this.getPackage = function(name) {
         return Q.Promise(function(resolve, reject) {        
-            var packages = db(reject).collection('packages');
+            var packages = connector.db(reject).collection('packages');
 
             logger.data("Trying to find package " + name);
 
@@ -69,7 +36,7 @@ function Packages() {
 
     this.getPackageVersion = function(name, version) {
         return Q.Promise(function(resolve, reject) {        
-            var packages = db(reject).collection('packages');
+            var packages = connector.db(reject).collection('packages');
 
             logger.data("Trying to find package [" + name + "] version [" + version + "]");
 
@@ -113,7 +80,7 @@ function Packages() {
             if (names.length) {
                 logger.data("Trying to find " + names.length + " packages");
 
-                var collection = db(reject).collection('packages');
+                var collection = connector.db(reject).collection('packages');
 
                 collection.find({ name: { $in: names } }).toArray(function(err, data) {
                     if (!err) {
@@ -266,7 +233,7 @@ function Packages() {
         return Q.Promise(function(resolve, reject) {
             validateCollaborator(package, token).then(function(data) {
                 if (data.valid) {                    
-                    var collection = db(reject).collection('packages');
+                    var collection = connector.db(reject).collection('packages');
 
                     if (!data.quarkData) {
                         logger.data("Inserting specified package");
