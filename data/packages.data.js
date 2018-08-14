@@ -12,7 +12,33 @@ function Packages() {
     var self = this;
 
     this.getPackage = function(name) {
-        return Q.Promise(function(resolve, reject) {        
+        return Q.Promise(function(resolve, reject) {
+            var sql = "SELECT * FROM package WHERE name = ?";
+
+            connector.query(sql, [name]).then(function(packages) {
+                if (packages && packages.length) {
+                    var package = packages[0];
+                    var sqlPath = "SELECT * FROM path WHERE package = ?";
+
+                    connector.query(sqlPath, [package.name]).then(function(paths) {
+                        for (var i = 0; i < paths.length; i++) {
+                            var path = paths[i];
+
+                            
+                        }
+                    })
+                    .catch(function(err) {
+                        reject(new dbExceptions.QueryingDbException(err));
+                    });        
+                } else {
+                    resolve();
+                }
+
+            })
+            .catch(function(err) {
+                reject(new dbExceptions.QueryingDbException(err));
+            });
+
             var packages = connector.db(reject).collection('packages');
 
             logger.data("Trying to find package " + name);
