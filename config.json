@@ -1,4 +1,19 @@
 {
-    "connection": "mongodb://localhost:27017",
-    "database": "qpm"
+    "database": {
+        "production": {
+            "connectionLimit": 10,
+            "host": "localhost",
+            "user": "root",
+            "password": "29240228",
+            "database": "quark"    
+        },
+        "test": {
+            "connectionLimit": 10,
+            "host": "localhost",
+            "user": "root",
+            "password": "29240228",
+            "database": "quark_test",
+            "multipleStatements": true    
+        }
+    }
 }
