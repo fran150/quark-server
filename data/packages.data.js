@@ -18,10 +18,12 @@ function Packages() {
             var sql = "SELECT * FROM package WHERE name = ?";
 
             // Get the package data
-            connector.query(sql, [name]).then(function(packages) {
+            connector.query(sql, [name]).then(function(data) {
                 // If a package is found
-                if (packages && packages.length) {
+                if (data && data.result.length) {
                     logger.data("Package found!");
+
+                    var packages = data.result;
 
                     // Initialize package paths and shims
                     var package = packages[0];                    
@@ -31,7 +33,9 @@ function Packages() {
                     var sqlPath = "SELECT * FROM path WHERE packageName = ?";
 
                     // Get the paths of the package
-                    var pathPromise = connector.query(sqlPath, [package.name]).then(function(paths) {
+                    var pathPromise = connector.query(sqlPath, [package.name]).then(function(data) {
+                        var paths = data.result;
+
                         // For each found path
                         for (var i = 0; i < paths.length; i++) {
                             // Get path data and version
@@ -51,7 +55,9 @@ function Packages() {
                     var sqlShim = "SELECT * FROM shim WHERE packageName = ?";
 
                     // Get the shims of the package
-                    var shimPromise = connector.query(sqlShim, [package.name]).then(function(shims) {
+                    var shimPromise = connector.query(sqlShim, [package.name]).then(function(data) {
+                        var shims = data.result;
+
                         // For each shim found
                         for (var i = 0; i < shims.length; i++) {
                             // Get shim data and version
@@ -66,9 +72,9 @@ function Packages() {
                             // Add the shim to the version data
                             package.shim[version][shim.name] = shim.dep;
                         }
-                    })
+                    });
 
-                    Q.all([pathPromise, shimPromise], function() {
+                    Q.all([pathPromise, shimPromise]).then(function() {
                         resolve(package);
                     })
                     .catch(function(err) {
@@ -87,36 +93,84 @@ function Packages() {
 
     this.getPackageVersion = function(name, version) {
         return Q.Promise(function(resolve, reject) {        
-            var packages = connector.db(reject).collection('packages');
-
             logger.data("Trying to find package [" + name + "] version [" + version + "]");
 
-            packages.findOne({ name: name }, function(err, data) {
-                if (!err) {
-                    var count = 0;
+            var sql = "SELECT * FROM package WHERE name = ?";
 
-                    if (data.versions) {
-                        for (var packageVersion in data.versions) {
-                            try {
-                                if (!semver.satisfies(version, packageVersion)) {                                    
-                                    delete data.versions[packageVersion];
-                                } else {
-                                    count++;
-                                }
-                            } catch(ex) {
-                                reject("Specified version is invalid");
+            // Get the package data
+            connector.query(sql, [name]).then(function(data) {
+                // If a package is found
+                if (data && data.result.length) {
+                    var packages = data.result;
+
+                    // Initialize package paths and shims
+                    var package = packages[0];                    
+                    package.path = {};
+                    package.shim = {};
+
+                    var sqlPath = "SELECT * FROM path WHERE packageName = ?";
+
+                    // Get the paths of the package
+                    var pathPromise = connector.query(sqlPath, [package.name]).then(function(data) {
+                        var paths = data.result;
+
+                        // For each found path
+                        for (var i = 0; i < paths.length; i++) {
+                            // Get path data and version
+                            var path = paths[i];
+                            var packageVersion = path.packageVersion;
+
+                            // If package version not exists create it
+                            if (semver.satisfies(version, packageVersion)) {
+                                if (!package.path[packageVersion]) {
+                                    package.path[packageVersion] = {};
+                                } 
+    
+                                // Add the path to the version data
+                                package.path[packageVersion][path.name] = path.path;
                             }
-                        }                        
-                    }
-                    
-                    logger.data("Found a package with " + count + " statisfying versions");
-                    
-                    resolve(data);
+                        }
+                    });
+
+                    var sqlShim = "SELECT * FROM shim WHERE packageName = ?";
+
+                    // Get the shims of the package
+                    var shimPromise = connector.query(sqlShim, [package.name]).then(function(data) {
+                        var shims = data.result;
+
+                        // For each shim found
+                        for (var i = 0; i < shims.length; i++) {
+                            // Get shim data and version
+                            var shim = shims[i];
+                            var packageVersion = shim.packageVersion;
+
+                            if (semver.satisfies(version, packageVersion)) {
+                                // If package version not exists create it
+                                if (!package.shim[packageVersion]) {
+                                    package.shim[packageVersion] = {};
+                                } 
+
+                                // Add the shim to the version data
+                                package.shim[packageVersion][shim.name] = shim.dep;
+                            }
+                        }
+                    });                    
+
+                    Q.all([pathPromise, shimPromise]).then(function() {
+                        logger.data("Found a package!");
+                        resolve(package);
+                    })
+                    .catch(function(err) {
+                        reject(new dbExceptions.QueryingDbException(err));
+                    });
                 } else {
-                    logger.error("Error trying to find package version");
-                    reject(err);
+                    logger.data("Package NOT found!");
+                    resolve();
                 }
-            });
+            })
+            .catch(function(err) {
+                reject(new dbExceptions.QueryingDbException(err));
+            })
         });
     }
     

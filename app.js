@@ -8,12 +8,7 @@ var app = express();
 
 app.use('/package', packagesRouter);
 
-connector.connect().then(function() {
-    logger.info("Listening on port 3000");
-    app.listen(3000);
-})
-.catch(function (error) {
-    logger.error(error);
-    throw new Error(error);
-})
-.done();
+connector.createConnectionPool();
+
+logger.info("Listening on port 3000");
+app.listen(3000);
