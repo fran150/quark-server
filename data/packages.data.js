@@ -185,45 +185,81 @@ function Packages() {
             if (names.length) {
                 logger.data("Trying to find " + names.length + " packages");
 
-                var collection = connector.db(reject).collection('packages');
+                var sql = "SELECT * FROM package WHERE name IN (?)";
 
-                collection.find({ name: { $in: names } }).toArray(function(err, data) {
-                    if (!err) {
-                        logger.data("Found " + data.length + " packages");
+                connector.query(sql, [names]).then(function(data) {
+                    // If a packages are found
+                    if (data && data.result.length) {
+                        var promises = new Array();
 
-                        var count = 0;
-                        
-                        for (var i = 0; i < data.length; i++) {
-                            var package = data[i];
+                        for (var i = 0; i < data.result.length; i++) {
+                            // Initialize package paths and shims
+                            var package = data.result[i]; 
+                            var version = search[package.name];
+
+                            package.path = {};
+                            package.shim = {};
+
+                            var sqlPath = "SELECT * FROM path WHERE packageName = ?";
+    
+                            // Get the paths of the package
+                            var pathPromise = connector.query(sqlPath, [package.name]).then(function(data) {
+                                var paths = data.result;
         
-                            if (package.versions) {
-                                for (var packageVersion in package.versions) {    
-                                    try {
-                                        if (!semver.satisfies(search[package.name].version, packageVersion)) {
-                                            delete package.versions[packageVersion];
-                                        } else {
-                                            count++;
-
-                                            for (var property in package.versions[packageVersion]) {
-                                                package[property] = package.versions[packageVersion][property];
-                                            }
-                                        }    
-                                    } catch(ex) {
-                                        reject("Specified version [" + search[package.name].version + "] for " + package.name + " is invalid");
+                                // For each found path
+                                for (var j = 0; j < paths.length; j++) {
+                                    // Get path data and version
+                                    var path = paths[j];
+                                    var packageVersion = path.packageVersion;
+        
+                                    // If package version not exists create it
+                                    if (semver.satisfies(version, packageVersion)) {
+                                        // Add the path to the version data
+                                        package.path[path.name] = path.path;
                                     }
                                 }
-                            }
+                            });
+        
+                            var sqlShim = "SELECT * FROM shim WHERE packageName = ?";
+        
+                            // Get the shims of the package
+                            var shimPromise = connector.query(sqlShim, [package.name]).then(function(data) {
+                                var shims = data.result;
+        
+                                // For each shim found
+                                for (var j = 0; j < shims.length; j++) {
+                                    // Get shim data and version
+                                    var shim = shims[j];
+                                    var packageVersion = shim.packageVersion;
+        
+                                    if (semver.satisfies(version, packageVersion)) {
+                                        // Add the shim to the version data
+                                        package.shim[shim.name] = shim.dep;
+                                    }
+                                }
+                            });
                             
-                            delete package.versions;
+                            // Add the promises to the array
+                            promises.push(pathPromise);
+                            promises.push(shimPromise);
                         }
-
-                        logger.data("Found " + count + " satisfying versions");
     
-                        resolve(data);    
+    
+                        Q.all(promises).then(function() {
+                            logger.data("Found some packages!");
+                            resolve(package);
+                        })
+                        .catch(function(err) {
+                            reject(new dbExceptions.QueryingDbException(err));
+                        });
                     } else {
-                        reject(err);
+                        logger.data("Packages NOT found!");
+                        resolve();
                     }
-                });
+                })
+                .catch(function(err) {
+                    reject(new dbExceptions.QueryingDbException(err));
+                })                
             } else {
                 logger.data("No specified package list to search");
                 resolve();
@@ -334,41 +370,104 @@ function Packages() {
         });
     }
 
+    function insertPackage(package, collabData) {
+        return Q.Promise(function(resolve, reject) {
+            // Gets a connection from the pool
+            connector.getConnection().then(function(connection) {
+
+                /// Initiate transaction
+                connection.beginTransaction(function(err) {
+                    if (!err) {
+                        logger.data("Inserting specified package");
+        
+                        package.author = collabData.login;
+                        package.dateCreated = new Date();
+        
+                        var sql = "INSERT INTO package VALUES (?,?,?,?,?)";
+
+                        connector.query(sql, [package.name, package.dateCreated, null, package.author, package.email], connection).then(function(result) {
+                            var promises = new Array();
+
+                            var sqlPath = "INSERT INTO path VALUES (?,?,?,?)";
+                            var sqlShim = "INSERT INTO shim VALUES (?,?,?,?)";
+
+                            for (var version in package.versions) {
+                                for (var pathName in package.versions[version].paths) {
+                                    var path = package.versions[version].paths[pathName];
+                                    var pathPromise = connector.query(sqlPath, [package.name, version, pathName, path], connection);
+                                    
+                                    promises.push(pathPromise);
+                                }
+
+                                for (var shimName in package.versions[version].shims) {
+                                    var shim = package.versions[version].shims[shimName];
+                                    var shimPromise = connector.query(sqlShim, [package.name, version, shimName, shim], connection);
+
+                                    promises.push(shimPromise);
+                                }
+                            }
+
+                            Q.all(promises).then(function(results) {
+                                connection.commit(function(err) {
+                                    if (!err) {
+                                        logger.info("Package Inserted!");
+
+                                        resolve(true);
+                                    } else {
+                                        connection.rollback(function(terr) {
+                                            if (!terr) {
+                                                reject(terr);
+                                            } else {
+                                                reject(err);
+                                            }
+                                        });
+                                    }
+                                });
+                            })
+                            .catch(function(err) {
+                                connection.rollback(function(terr) {
+                                    if (!terr) {
+                                        reject(terr);
+                                    } else {
+                                        reject(err);
+                                    }
+                                });    
+                            })
+                        })
+                        .catch(function(err) {
+                            console.log(err);
+                            connection.rollback(function(terr) {
+                                if (!terr) {
+                                    reject(terr);
+                                } else {
+                                    reject(err);
+                                }
+                            });
+                        })    
+                    } else {
+                        reject(err);
+                    }
+                });    
+            })
+            .catch(function(err) {
+                reject(err);
+            })
+        })
+    }
+
     this.registerPackage = function(package, token) {
         return Q.Promise(function(resolve, reject) {
             validateCollaborator(package, token).then(function(data) {
                 if (data.valid) {                    
-                    var collection = connector.db(reject).collection('packages');
-
                     if (!data.quarkData) {
-                        logger.data("Inserting specified package");
-
-                        package.author = data.login;
-                        package.created = new Date();
-
-                        collection.insertOne(package, function(err, result) {
-                            if (err) {
-                                reject({ type: 'unknown', data: err });         
-                            } else {
-                                logger.info("Package Inserted!");
-                                resolve(true);
-                            }
+                        insertPackage(package, data).then(function() {
+                            resolve(true);
+                        })
+                        .catch(function(err) {
+                            reject(err);
                         });
                     } else {
-                        logger.data("Updating specified package");
 
-                        package.author = data.quarkData.author;
-                        package.created = data.quarkData.created;
-
-                        package.updated = new Date();
-                        collection.replaceOne({ name: package.name }, package, function(err, result) {
-                            if (err) {
-                                reject({ type: 'unknown', data: err });                                
-                            } else {
-                                logger.info("Package Updated!");
-                                resolve(true);
-                            }                            
-                        })
                     }
                 } else {
                     reject({ type: 'login', data: "The specified user is not valid or can't edit this quark package"});
