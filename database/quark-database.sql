@@ -1,3 +1,5 @@
+CREATE DATABASE  IF NOT EXISTS `quark` /*!40100 DEFAULT CHARACTER SET utf8 */;
+USE `quark`;
 -- MySQL dump 10.13  Distrib 5.7.17, for Win64 (x86_64)
 --
 -- Host: localhost    Database: quark
@@ -24,10 +26,9 @@ DROP TABLE IF EXISTS `package`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `package` (
   `name` varchar(50) NOT NULL,
-  `isQuarkModule` bit(1) NOT NULL,
-  `dateCreated` datetime DEFAULT NULL,
+  `dateCreated` datetime NOT NULL,
   `dateModified` datetime DEFAULT NULL,
-  `author` varchar(1024) DEFAULT NULL,
+  `author` varchar(1024) NOT NULL,
   `email` varchar(1024) DEFAULT NULL,
   PRIMARY KEY (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Quark registered packages';
@@ -39,7 +40,7 @@ CREATE TABLE `package` (
 
 LOCK TABLES `package` WRITE;
 /*!40000 ALTER TABLE `package` DISABLE KEYS */;
-INSERT INTO `package` VALUES ('bootstrap','\0','2018-08-14 00:00:00',NULL,'fran150','panchi150@gmail.com');
+INSERT INTO `package` VALUES ('bootstrap','2018-08-14 00:00:00',NULL,'fran150','panchi150@gmail.com'),('qk-alchemy','2018-08-29 01:32:00',NULL,'fran150',NULL);
 /*!40000 ALTER TABLE `package` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -56,7 +57,8 @@ CREATE TABLE `path` (
   `name` varchar(150) NOT NULL,
   `path` varchar(500) NOT NULL,
   PRIMARY KEY (`packageName`,`packageVersion`,`name`),
-  CONSTRAINT `fk_path_version` FOREIGN KEY (`packageName`, `packageVersion`) REFERENCES `version` (`packageName`, `version`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  KEY `fk_path_package_idx` (`packageName`),
+  CONSTRAINT `fk_path_package` FOREIGN KEY (`packageName`) REFERENCES `package` (`name`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Require paths to configure for this package';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -66,7 +68,7 @@ CREATE TABLE `path` (
 
 LOCK TABLES `path` WRITE;
 /*!40000 ALTER TABLE `path` DISABLE KEYS */;
-INSERT INTO `path` VALUES ('bootstrap','3.x','bootstrap/css','bootstrap/dist/css/bootstrap.min'),('bootstrap','3.x','bootstrap/js','bootstrap/dist/js/bootstrap.min');
+INSERT INTO `path` VALUES ('bootstrap','3.x','bootstrap/css','bootstrap/dist/css/bootstrap.min'),('bootstrap','3.x','bootstrap/js','bootstrap/dist/js/bootstrap.min'),('qk-alchemy','0.x','qk-alchemy','src');
 /*!40000 ALTER TABLE `path` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -78,12 +80,13 @@ DROP TABLE IF EXISTS `shim`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `shim` (
-  `packageName` varchar(40) NOT NULL,
+  `packageName` varchar(50) NOT NULL,
   `packageVersion` varchar(20) NOT NULL,
   `name` varchar(50) NOT NULL,
   `dep` varchar(150) NOT NULL,
   PRIMARY KEY (`packageName`,`packageVersion`,`name`,`dep`),
-  CONSTRAINT `fk_shim_version` FOREIGN KEY (`packageName`, `packageVersion`) REFERENCES `version` (`packageName`, `version`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  KEY `fk_shim_package1_idx` (`packageName`),
+  CONSTRAINT `fk_shim_package1` FOREIGN KEY (`packageName`) REFERENCES `package` (`name`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Shims to apply for a package';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -96,31 +99,6 @@ LOCK TABLES `shim` WRITE;
 INSERT INTO `shim` VALUES ('bootstrap','3.x','bootstrap/js','jquery');
 /*!40000 ALTER TABLE `shim` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `version`
---
-
-DROP TABLE IF EXISTS `version`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `version` (
-  `packageName` varchar(50) NOT NULL,
-  `version` varchar(20) NOT NULL,
-  PRIMARY KEY (`packageName`,`version`),
-  CONSTRAINT `fk_version_package` FOREIGN KEY (`packageName`) REFERENCES `package` (`name`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `version`
---
-
-LOCK TABLES `version` WRITE;
-/*!40000 ALTER TABLE `version` DISABLE KEYS */;
-INSERT INTO `version` VALUES ('bootstrap','3.x');
-/*!40000 ALTER TABLE `version` ENABLE KEYS */;
-UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -131,4 +109,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-08-14  1:06:27
+-- Dump completed on 2018-08-29 23:50:42

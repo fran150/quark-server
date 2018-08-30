@@ -16,6 +16,8 @@ var PackageRequestSchema = require('../schemas/package-request.json');
 var PackageSchema = require('../schemas/package.json');
 var VersionSchema = require('../schemas/version.json');
 
+var errorHandler = require("../middlewares/error-handler.middle");
+
 router.use(express.json());
 
 router.get('/:name', function(req, res, next) {
@@ -23,7 +25,8 @@ router.get('/:name', function(req, res, next) {
 
     data.getPackage(req.params.name).then(function(package) {
         res.json(package);
-    });
+    })
+    .catch(next);
 });
 
 router.get('/:name/:version', function(req, res, next) {
@@ -81,6 +84,7 @@ router.post('', validate({ body: PackageSchema }, [VersionSchema]), function(req
     }
 });
 
+router.use(errorHandler);
 router.use(schemaValidator);
 
 module.exports = router;
