@@ -1,7 +1,26 @@
 var logger = require("../utils/logger");
+var BaseExceptions = require("../exceptions/base.exceptions");
+var AuthExceptions = require("../exceptions/auth.exceptions");
 
 function AppErrorHandler(err, req, res, next) { 
-    if (err.name === 'JsonSchemaValidation') {
+    if (err instanceof BaseExceptions.BaseException) {
+        if (err instanceof AuthExceptions.LoginException) {
+            // Set Unauthorized
+            res.status(401);
+        } else if (err instanceof AuthExceptions.AuthException) {
+            // Set forbidden
+            res.status(403);
+        } else {
+            // Set internal server error
+            res.status(500);
+        }
+
+        // Log the error
+        logger.error(err);
+   
+        // Take into account the content type if your app serves various content types
+        res.json(err);
+    } else if (err.name === 'JsonSchemaValidation') {
         var responseData;
 
         // Log the error
@@ -20,13 +39,8 @@ function AppErrorHandler(err, req, res, next) {
         // Take into account the content type if your app serves various content types
         res.json(responseData);
     } else {
-        // Set internal server error
-        res.status(500);
-        // Log the error
-        logger.error(err);
-   
-        // Take into account the content type if your app serves various content types
-        res.json(err);
+        // pass error to next error middleware handler
+        next(err);
     }
 }
 

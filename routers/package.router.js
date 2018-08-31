@@ -4,7 +4,6 @@ var router = express.Router();
 
 // Schema validator
 var validate = require('express-jsonschema').validate;
-var schemaValidator = require('../middlewares/schema-validator');
 
 // Data layer
 var data = require('../data/packages.data');
@@ -15,8 +14,6 @@ var logger = require('../utils/logger');
 var PackageRequestSchema = require('../schemas/package-request.json');
 var PackageSchema = require('../schemas/package.json');
 var VersionSchema = require('../schemas/version.json');
-
-var errorHandler = require("../middlewares/error-handler.middle");
 
 router.use(express.json());
 
@@ -35,24 +32,16 @@ router.get('/:name/:version', function(req, res, next) {
     data.getPackageVersion(req.params.name, req.params.version).then(function(package) {
         res.json(package);
     })
-    .catch(function(error) {        
-        logger.error(error);
-        res.status(500);
-        res.json(error);
-    })
+    .catch(next);
 });
 
 router.post('/search', validate({ body: PackageRequestSchema }), function(req, res, next) {
     logger.post("/package/search");
 
-    data.getPackages(req.body).then(function(list) {
+    data.searchPackages(req.body).then(function(list) {
         res.json(list);
     })
-    .catch(function(error) {        
-        logger.error(error);
-        res.status(500);
-        res.json(error);
-    })    
+    .catch(next);    
 });
 
 router.post('', validate({ body: PackageSchema }, [VersionSchema]), function(req, res, next) {
@@ -83,8 +72,5 @@ router.post('', validate({ body: PackageSchema }, [VersionSchema]), function(req
         })
     }
 });
-
-router.use(errorHandler);
-router.use(schemaValidator);
 
 module.exports = router;
