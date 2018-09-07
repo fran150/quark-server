@@ -22,30 +22,75 @@ function Connector() {
     this.getEnvironment = function() {
         return environment;
     }
+
+    this.transaction = function(process) {
+        return Q.Promise(function(resolve, reject) {
+            self.getConnection().then(function(conn) {
+                process(conn, function(result) {               
+                    // Commit the transaction
+                    conn.commit(function(commitError) {  
+                        logger.data("Commit transaction");
     
+                        if (!commitError) {
+                            // If theres no error commiting, commit the process
+                            resolve(result);
+                            conn.release();
+                        } else {
+                            // If theres an error commiting, rollback the process
+                            logger.data("Rollingback transaction");
+                            conn.rollback(function(rollbackError) {
+                                if (!rollbackError) {
+                                    reject(commitError);
+                                    conn.release();
+                                } else {
+                                    reject(rollbackError);
+                                    conn.release();
+                                }
+                            });                
+                        }
+                    })
+                }, function(err) {
+                    logger.data("Rollback transaction");
+    
+                    conn.rollback(function(rollbackError) {
+                        if (!rollbackError) {
+                            reject(err);
+                            conn.release();
+                        } else {
+                            reject(rollbackError);
+                            conn.release();
+                        }
+                    });
+                });
+    
+            })
+            .catch(reject);            
+        });
+    }
+
     // Get a connection to database from the pool
     this.getConnection = function(connection) {
         return Q.Promise(function(resolve, reject) {
             if (connection) {
                 resolve(connection);
-            }
-            
-            logger.data("Getting connection from the pool");
+            } else {
+                logger.data("Getting connection from the pool");
 
-            // Check if pool is created
-            if (!pool) {
-                reject(new dbExceptions.ConnectionPoolNotCreatedException());
-            }
-
-            // Try get a connection from the pool
-            pool.getConnection(function(err, connection) {
-                if (err) {
-                    logger.error("Error getting connection from database pool");
-                    reject(new dbExceptions.ErrorGettingConnection(err));
-                } else {
-                    resolve(connection);
+                // Check if pool is created
+                if (!pool) {
+                    reject(new dbExceptions.ConnectionPoolNotCreatedException());
                 }
-            });
+    
+                // Try get a connection from the pool
+                pool.getConnection(function(err, connection) {
+                    if (err) {
+                        logger.error("Error getting connection from database pool");
+                        reject(new dbExceptions.ErrorGettingConnection(err));
+                    } else {
+                        resolve(connection);
+                    }
+                });    
+            }            
         });
     }
 
@@ -57,8 +102,11 @@ function Connector() {
                 logger.data("Executing query " + query);
                 // Execute specified query
                 con.query(query, params, function(err, result, fields) {
-                    // Release connection
-                    con.release();
+                    // If the connection is not specified manually
+                    if (!connection) {
+                        // Release connection
+                        con.release();
+                    }
 
                     if (err) {
                         // If error reject the promise

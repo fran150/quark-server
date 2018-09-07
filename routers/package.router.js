@@ -62,7 +62,7 @@ router.post('', validate({ body: PackageSchema }, [VersionSchema]), function(req
                 logger.error(error);
             }
 
-            if (error.type && error.type == "login") {
+            if (error.subtype && error.subtype == "login") {
                 res.status(401);
             } else {
                 res.status(500);

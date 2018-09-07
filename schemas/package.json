@@ -5,7 +5,10 @@
         "name": {
             "type": "string",
             "required": true
-
+        },
+        "email": {
+            "type": "string",
+            "format": "email"
         },
         "versions": {
             "type": "object",

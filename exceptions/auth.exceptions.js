@@ -65,6 +65,28 @@ function TokenNotSpecifiedException() {
 TokenNotSpecifiedException.prototype = Object.create(AuthException.prototype);
 TokenNotSpecifiedException.prototype.constructor = TokenNotSpecifiedException;
 
+
+function GetUserDataException(error) {
+    AuthException.call(this);
+    this.type = 'GetUserDataException';
+    this.message = "Cannot read the user data from github";
+    this.error = error;
+}
+
+GetUserDataException.prototype = Object.create(AuthException.prototype);
+GetUserDataException.prototype.constructor = GetUserDataException;
+
+
+function CantGetCollaboratorsException(error) {
+    AuthException.call(this);
+    this.type = 'CantGetCollaboratorsException';
+    this.message = "Cannot read the collaborators from the github repo";
+    this.error = error;
+}
+
+CantGetCollaboratorsException.prototype = Object.create(AuthException.prototype);
+CantGetCollaboratorsException.prototype.constructor = CantGetCollaboratorsException;
+
 var exceptions = {
     "AuthException": AuthException,
     "LoginException": LoginException,
@@ -72,7 +94,9 @@ var exceptions = {
     "PasswordNotSpecifiedException": PasswordNotSpecifiedException,
     "InvalidLoginException": InvalidLoginException,
     "InvalidTokenException": InvalidTokenException,
-    "TokenNotSpecifiedException": TokenNotSpecifiedException
+    "TokenNotSpecifiedException": TokenNotSpecifiedException,
+    "GetUserDataException": GetUserDataException,
+    "CantGetCollaboratorsException": CantGetCollaboratorsException
 }    
 
 module.exports = exceptions;
