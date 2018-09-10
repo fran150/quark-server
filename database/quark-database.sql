@@ -1,5 +1,3 @@
-CREATE DATABASE  IF NOT EXISTS `quark` /*!40100 DEFAULT CHARACTER SET utf8 */;
-USE `quark`;
 -- MySQL dump 10.13  Distrib 5.7.17, for Win64 (x86_64)
 --
 -- Host: localhost    Database: quark
@@ -35,16 +33,6 @@ CREATE TABLE `package` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `package`
---
-
-LOCK TABLES `package` WRITE;
-/*!40000 ALTER TABLE `package` DISABLE KEYS */;
-INSERT INTO `package` VALUES ('bootstrap','2018-08-14 00:00:00',NULL,'fran150','panchi150@gmail.com'),('qk-alchemy','2018-08-29 01:32:00',NULL,'fran150',NULL);
-/*!40000 ALTER TABLE `package` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
 -- Table structure for table `path`
 --
 
@@ -61,16 +49,6 @@ CREATE TABLE `path` (
   CONSTRAINT `fk_path_package` FOREIGN KEY (`packageName`) REFERENCES `package` (`name`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Require paths to configure for this package';
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `path`
---
-
-LOCK TABLES `path` WRITE;
-/*!40000 ALTER TABLE `path` DISABLE KEYS */;
-INSERT INTO `path` VALUES ('bootstrap','3.x','bootstrap/css','bootstrap/dist/css/bootstrap.min'),('bootstrap','3.x','bootstrap/js','bootstrap/dist/js/bootstrap.min'),('qk-alchemy','0.x','qk-alchemy','src');
-/*!40000 ALTER TABLE `path` ENABLE KEYS */;
-UNLOCK TABLES;
 
 --
 -- Table structure for table `shim`
@@ -90,15 +68,6 @@ CREATE TABLE `shim` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Shims to apply for a package';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `shim`
---
-
-LOCK TABLES `shim` WRITE;
-/*!40000 ALTER TABLE `shim` DISABLE KEYS */;
-INSERT INTO `shim` VALUES ('bootstrap','3.x','bootstrap/js','jquery');
-/*!40000 ALTER TABLE `shim` ENABLE KEYS */;
-UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

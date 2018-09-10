@@ -15,5 +15,8 @@
             "database": "quark_test",
             "multipleStatements": true    
         }
+    },
+    "tests": {
+        "dbCleanTimeout": 20000
     }
 }
