@@ -23,6 +23,8 @@ function Packages() {
     // Gets a package and version data
     function getPackage(name, version) {
         return Q.Promise(function(resolve, reject) {
+            name = name.trim();
+            
             // Validate package name
             if (!name) {
                 reject(new packageExceptions.NameNotSpecifiedException());
@@ -44,6 +46,8 @@ function Packages() {
 
                     // Get the package info from the db result
                     var package = data.result[0];
+                    // Initialize the package versions property
+                    package.versions = {};
 
                     // Get the paths for the package
                     const sqlPath = "SELECT * FROM path WHERE packageName = ?";
@@ -59,11 +63,6 @@ function Packages() {
 
                             // If the package version satisfies the specified version
                             if (!version || semver.satisfies(version, packageVersion)) {
-                                // If package version not exists create it
-                                if (!package.versions) {
-                                    package.versions = {};
-                                } 
-
                                 // if package version property is not defined create it
                                 if (!package.versions[packageVersion]) {
                                     package.versions[packageVersion] = {}
@@ -96,12 +95,7 @@ function Packages() {
                             var packageVersion = shim.packageVersion;
 
                             // If the package version satisfies the specified version
-                            if (!version || semver.satisfies(version, packageVersion)) {                                
-                                // If package version not exists create it
-                                if (!package.versions) {
-                                    package.versions = {};
-                                } 
-
+                            if (!version || semver.satisfies(version, packageVersion)) {
                                 // if package version property is not defined create it
                                 if (!package.versions[packageVersion]) {
                                     package.versions[packageVersion] = {}
@@ -127,7 +121,7 @@ function Packages() {
                     });
                 } else {
                     logger.data("Package NOT found!");
-                    resolve();
+                    reject(new packageExceptions.PackageNotFoundException(name))
                 }
             })
             .catch(function(err) {
@@ -161,20 +155,28 @@ function Packages() {
                 reject(new packageExceptions.InvalidSearchParameterException());
             }
 
+            var trimmedSearch = {};
+
             // Create a names array and validate all specified versions
             for (var name in search) {
+                // Trim the name
+                var trimmed = name.trim();
+
                 // Validate package name
-                if (!name) {
+                if (!trimmed) {
                     reject(new packageExceptions.NameNotSpecifiedException());
                 }
 
                 // Add the name to the search array
-                names.push(name);
+                names.push(trimmed);
+
+                // Trimmed search
+                trimmedSearch[trimmed] = search[name];
 
                 // Validate the package version
-                var version = search[name];                
+                var version = trimmedSearch[trimmed];
                 if (!semver.valid(version)) {
-                    reject(new packageExceptions.InvalidVersionException(name, version));
+                    reject(new packageExceptions.InvalidVersionException(trimmed, version));
                 }
             }
     
@@ -201,7 +203,7 @@ function Packages() {
                         for (var i = 0; i < packages.length; i++) {
                             // Get the package data and searched version
                             let thisPackage = packages[i]; 
-                            let version = search[thisPackage.name];
+                            let version = trimmedSearch[thisPackage.name];
 
                             // Initialize package paths and shims
                             thisPackage.paths = {};
@@ -264,7 +266,7 @@ function Packages() {
                         })
                     } else {
                         logger.data("Packages NOT found!");
-                        resolve();
+                        reject(new packageExceptions.PackagesNotFoundException(names));
                     }
                 })
                 .catch(function(err) {
@@ -272,7 +274,7 @@ function Packages() {
                 })                
             } else {
                 logger.data("No specified package list to search");
-                resolve();
+                reject(new packageExceptions.InvalidSearchParameterException());
             }
         });
     }
@@ -434,7 +436,7 @@ function Packages() {
                         var path = currentVersion.paths[pathName];
 
                         // Insert the path and store the promise on the array
-                        var pathPromise = connector.query(sqlPath, [package.name, version, pathName, path], connection)
+                        var pathPromise = connector.query(sqlPath, [package.name.trim(), version, pathName, path], connection)
                             .catch(function(err) {
                                 reject(new dbExceptions.QueryingDbException(err));
                             });
@@ -449,7 +451,7 @@ function Packages() {
                         var shim = currentVersion.shims[shimName];
                         
                         // Insert the shim and store the promise on the array
-                        var shimPromise = connector.query(sqlShim, [package.name, version, shimName, shim], connection)
+                        var shimPromise = connector.query(sqlShim, [package.name.trim(), version, shimName, shim], connection)
                             .catch(function(err) {
                                 reject(new dbExceptions.QueryingDbException(err));
                             });
@@ -476,9 +478,9 @@ function Packages() {
             const sqlShim = "DELETE FROM shim WHERE packageName = ?";
 
             // Execute both queries and get the promises
-            var pathPromise = connector.query(sqlPath, [package.name], connection)
+            var pathPromise = connector.query(sqlPath, [package.name.trim()], connection)
                 .catch(reject);
-            var shimPromise = connector.query(sqlShim, [package.name], connection)
+            var shimPromise = connector.query(sqlShim, [package.name.trim()], connection)
                 .catch(reject);
 
             // Wait for both promises to execute
@@ -500,7 +502,7 @@ function Packages() {
             const sql = "INSERT INTO package VALUES (?,?,?,?,?)";
 
             // Execute the insert, and then insert the paths and shims
-            connector.query(sql, [package.name, package.dateCreated, null, package.author, package.email], connection).then(function() {
+            connector.query(sql, [package.name.trim(), package.dateCreated, null, package.author, package.email], connection).then(function() {
                 insertPackagePathAndShim(package, connection).then(resolve)
                 .catch(reject);
             })
@@ -526,7 +528,7 @@ function Packages() {
             const sql = "UPDATE package SET dateModified = ?, author = ?, email = ? WHERE name = ?";
 
             // Execute the update query, then delete all the existing path and shims and insert the new ones
-            connector.query(sql, [package.dateModified, package.author, package.email, package.name], connection).then(function() {
+            connector.query(sql, [package.dateModified, package.author, package.email, package.name.trim()], connection).then(function() {
                 deletePackagePathAndShim(package, connection).then(function() {
                     insertPackagePathAndShim(package, connection).then(resolve)
                     .catch(reject);

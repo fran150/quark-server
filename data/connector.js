@@ -8,20 +8,15 @@ var dbExceptions = require('../exceptions/db.exceptions');
 var logger = require('../utils/logger');
 var config = require('../config.json');
 
+// Read arguments
+var argv = require('minimist')(process.argv.slice(2));
+
 // Connector to the database
 function Connector() {
     var self = this;
     
     // Application pool
     var pool;
-
-    // Environment name
-    var environment;
-
-    // Gets the database environment
-    this.getEnvironment = function() {
-        return environment;
-    }
 
     this.transaction = function(process) {
         return Q.Promise(function(resolve, reject) {
@@ -99,9 +94,10 @@ function Connector() {
         return Q.Promise(function(resolve, reject) {
             // Get a connection to query
             self.getConnection(connection).then(function(con) {
-                logger.data("Executing query " + query);
                 // Execute specified query
                 con.query(query, params, function(err, result, fields) {
+                    logger.data("Executing query " + this.sql);
+
                     // If the connection is not specified manually
                     if (!connection) {
                         // Release connection
@@ -128,17 +124,20 @@ function Connector() {
     }
 
     // Create a connection pool
-    this.createConnectionPool = function(env) {
+    this.createConnectionPool = function(environment) {
         try {
-            // Set default environment 
-            env = env || "production";
-
-            // Set configured environment
-            self.environment = env;
-
             // Create a connection pool with the specified config and save to the variable
             logger.info("Create database connection pool");
-            pool = mysql.createPool(config.database[env]);    
+
+            var env;
+
+            if (!environment) {
+                env = argv["_"] || "develop";
+            } else {
+                env = environment;
+            }
+
+            pool = mysql.createPool(config[env].database);
         } catch(ex) {
             logger.error("Error creating database connection pool");
             throw new dbExceptions.CreateConnectionPoolException(ex);

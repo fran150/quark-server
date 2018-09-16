@@ -10,6 +10,23 @@ function PackageException() {
 PackageException.prototype = Object.create(BaseExceptions.BusinessException.prototype);
 PackageException.prototype.constructor = PackageException;
 
+function PackageNotFoundException(name) {
+    PackageException.call(this);
+    this.type = 'PackageNotFoundException';
+    this.message = "The specified package (" + name + ") does not exists";
+    this.name = name;
+}
+PackageNotFoundException.prototype = Object.create(PackageException.prototype);
+PackageNotFoundException.prototype.constructor = PackageNotFoundException
+
+function PackagesNotFoundException(packages) {
+    PackageException.call(this);
+    this.type = 'PackagesNotFoundException';
+    this.message = "None of the specified packages was found";
+    this.packages = packages;
+}
+PackagesNotFoundException.prototype = Object.create(PackageException.prototype);
+PackagesNotFoundException.prototype.constructor = PackagesNotFoundException
 
 function NameNotSpecifiedException() {
     PackageException.call(this);
@@ -88,6 +105,8 @@ ErrorRegisteringPackageException.prototype.constructor = ErrorRegisteringPackage
 
 module.exports = {
     "PackageException": PackageException,
+    "PackageNotFoundException": PackageNotFoundException,
+    "PackagesNotFoundException": PackagesNotFoundException,
     "InvalidVersionException": InvalidVersionException,
     "NameNotSpecifiedException": NameNotSpecifiedException,
     "InvalidSearchParameterException": InvalidSearchParameterException,

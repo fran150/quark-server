@@ -1,6 +1,10 @@
 var logger = require("../utils/logger");
 var BaseExceptions = require("../exceptions/base.exceptions");
 var AuthExceptions = require("../exceptions/auth.exceptions");
+var JsonExceptions = require('../exceptions/json.exceptions');
+
+// Read arguments
+var argv = require('minimist')(process.argv.slice(2));
 
 function AppErrorHandler(err, req, res, next) { 
     if (err instanceof BaseExceptions.BaseException) {
@@ -15,6 +19,10 @@ function AppErrorHandler(err, req, res, next) {
             res.status(500);
         }
 
+        if (err.stack && argv["_"] == "production") {
+            delete err.stack;
+        }
+
         // Log the error
         logger.error(err);
    
@@ -26,18 +34,11 @@ function AppErrorHandler(err, req, res, next) {
         // Log the error
         logger.error(err.message);
  
-        // Set a bad request http response status or whatever you want
+        // Set a bad request http response status
         res.status(400);
  
-        // Format the response body however you want
-        responseData = {
-           statusText: 'Bad Request',
-           jsonSchemaValidation: true,
-           validations: err.validations  // All of your validation information
-        };
- 
         // Take into account the content type if your app serves various content types
-        res.json(responseData);
+        res.json(new JsonExceptions.JsonValidationException(err.validations));
     } else {
         // pass error to next error middleware handler
         next(err);
