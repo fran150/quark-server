@@ -280,7 +280,39 @@ describe("Package Read Tests", function() {
 
             done();
         })
-    });    
+    });   
+    
+    it("Must throw invalid version exception when one of the packages has a wrong one specified", function(done) {
+        var body = {
+            "test": "1.2qweqwe"
+        };
+
+        request.post({ url: server + '/package/search', body: body, json: true }, function(error, response, body) {
+            // Check status code
+            expect(response.statusCode).toBe(500);
+
+            expect(body.type).toBe("InvalidVersionException");
+
+            done();
+        })
+    });
+    
+    it("Must return packages not found", function(done) {
+        var body = {
+            "test": "1.2.3",
+            "test2": "1.0.0"
+        };
+
+        request.post({ url: server + '/package/search', body: body, json: true }, function(error, response, body) {
+            // Check status code
+            expect(response.statusCode).toBe(500);
+
+            expect(body.type).toBe("PackagesNotFoundException");
+            expect(body.packages).toEqual(["test", "test2"]);
+
+            done();
+        })
+    });      
 
     it("Must ignore not found packages and leave empty shim and paths from unexistent versions", function(done) {
         var body = {
@@ -323,6 +355,5 @@ describe("Package Read Tests", function() {
 
             done();
         });
-    });    
-
+    });
 })

@@ -227,7 +227,7 @@ function Packages() {
                                 }
                             })
                             .catch(function(err) {
-                                reject(err);
+                                reject(new dbExceptions.QueryingDbException(err));
                             });
                 
                             // Get the shims of the package
@@ -248,7 +248,7 @@ function Packages() {
                                 }
                             })
                             .catch(function(err) {
-                                reject(err);
+                                reject(new dbExceptions.QueryingDbException(err));
                             });
 
                             // Add the promises to the array
@@ -270,7 +270,7 @@ function Packages() {
                     }
                 })
                 .catch(function(err) {
-                    reject(err);
+                    reject(new dbExceptions.QueryingDbException(err));
                 })                
             } else {
                 logger.data("No specified package list to search");
