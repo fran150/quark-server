@@ -6,6 +6,9 @@
             "type": "string",
             "required": true
         },
+        "author": {
+            "type": "string"
+        },
         "email": {
             "type": "string",
             "format": "email"

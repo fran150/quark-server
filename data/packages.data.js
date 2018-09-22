@@ -363,7 +363,7 @@ function Packages() {
                             }
 
                             // Iterate over the found collaborators
-                            for (var i = 0; i <= collabs.data.length; i++) {
+                            for (var i = 0; i < collabs.data.length; i++) {
                                 var collaborator = collabs.data[i].login;
 
                                 // If the logged user is a collaborator in the github repo
@@ -515,8 +515,13 @@ function Packages() {
         return connector.transaction(function(connection, resolve, reject) {
             logger.data("Updating package");
 
+            // Set the author as the login user if not specified in the package config
+            if (!package.author) {
+                package.author = collabData.login;
+            }
+
             // Set the package modification date
-            package.dateModified = new Date();
+            package.dateModified = new Date();            
 
             // If the logged user is not the package author set the package author
             // to the original author

@@ -1,8 +1,17 @@
+var proxyquire = require('proxyquire');
+
 // Get express framework
 var express = require("express");
 
-// Get routers
-var packagesRouter = require("../../routers/package.router");
+// Load the mocked modules
+var octokitMock = require("../mocks/octokit.mock");
+var dataMock = proxyquire("../../data/packages.data", {
+    "@octokit/rest": octokitMock
+});
+
+var packagesRouter = proxyquire("../../routers/package.router", {
+    "../data/packages.data": dataMock
+});
 
 // Get utils
 var connector = require('../../data/connector');

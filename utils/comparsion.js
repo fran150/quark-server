@@ -1,3 +1,4 @@
+var util = require('util');
 
 module.exports = {
     // Check if the specified var is defined
@@ -40,7 +41,7 @@ module.exports = {
 
     // Check if the specified var is an array
     isArray: function (variable) {
-        return $.isArray(variable);
+        return util.isArray(variable);
     },
 
     // Check if the specified var is an object

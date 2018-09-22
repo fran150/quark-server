@@ -21,43 +21,49 @@ function Connector() {
     this.transaction = function(process) {
         return Q.Promise(function(resolve, reject) {
             self.getConnection().then(function(conn) {
-                process(conn, function(result) {               
-                    // Commit the transaction
-                    conn.commit(function(commitError) {  
-                        logger.data("Commit transaction");
-    
-                        if (!commitError) {
-                            // If theres no error commiting, commit the process
-                            resolve(result);
-                            conn.release();
-                        } else {
-                            // If theres an error commiting, rollback the process
-                            logger.data("Rollingback transaction");
+                conn.beginTransaction(function(beginError) {
+                    if (!beginError) {
+                        process(conn, function(result) {
+                            // Commit the transaction
+                            conn.commit(function(commitError) {  
+                                logger.data("Commit transaction");
+            
+                                if (!commitError) {
+                                    // If theres no error commiting, commit the process
+                                    resolve(result);
+                                    conn.release();
+                                } else {
+                                    // If theres an error commiting, rollback the process
+                                    logger.data("Rollback transaction");
+                                    conn.rollback(function(rollbackError) {
+                                        if (!rollbackError) {
+                                            reject(commitError);
+                                            conn.release();
+                                        } else {
+                                            reject(rollbackError);
+                                            conn.release();
+                                        }
+                                    });                
+                                }
+                            })
+                        }, function(err) {
+                            logger.data("Rollback transaction");
+            
                             conn.rollback(function(rollbackError) {
                                 if (!rollbackError) {
-                                    reject(commitError);
+                                    reject(err);
                                     conn.release();
                                 } else {
                                     reject(rollbackError);
                                     conn.release();
                                 }
-                            });                
-                        }
-                    })
-                }, function(err) {
-                    logger.data("Rollback transaction");
-    
-                    conn.rollback(function(rollbackError) {
-                        if (!rollbackError) {
-                            reject(err);
-                            conn.release();
-                        } else {
-                            reject(rollbackError);
-                            conn.release();
-                        }
-                    });
+                            });
+                        });                                
+                    } else {
+                        reject(beginError);
+                        conn.release();
+                    }  
                 });
-    
             })
             .catch(reject);            
         });
