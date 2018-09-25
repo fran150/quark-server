@@ -87,6 +87,16 @@ function CantGetCollaboratorsException(error) {
 CantGetCollaboratorsException.prototype = Object.create(AuthException.prototype);
 CantGetCollaboratorsException.prototype.constructor = CantGetCollaboratorsException;
 
+function UserUnauthorizedException(login) {
+    AuthException.call(this);
+    this.type = 'UserUnauthorizedException';
+    this.message = "The user is unauthorized. The user must be the quark package author, the github repo owner or a collaborator.";
+    this.login = login;
+}
+
+UserUnauthorizedException.prototype = Object.create(AuthException.prototype);
+UserUnauthorizedException.prototype.constructor = UserUnauthorizedException;
+
 var exceptions = {
     "AuthException": AuthException,
     "LoginException": LoginException,
@@ -96,7 +106,8 @@ var exceptions = {
     "InvalidTokenException": InvalidTokenException,
     "TokenNotSpecifiedException": TokenNotSpecifiedException,
     "GetUserDataException": GetUserDataException,
-    "CantGetCollaboratorsException": CantGetCollaboratorsException
+    "CantGetCollaboratorsException": CantGetCollaboratorsException,
+    "UserUnauthorizedException": UserUnauthorizedException
 }    
 
 module.exports = exceptions;

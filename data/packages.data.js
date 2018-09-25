@@ -7,6 +7,7 @@ var semver = require('semver');
 const octokit = require('@octokit/rest')();
 
 // Get exceptions
+var baseExceptions = require('../exceptions/base.exceptions');
 var dbExceptions = require('../exceptions/db.exceptions');
 var packageExceptions = require('../exceptions/package.exceptions');
 var authExceptions = require('../exceptions/auth.exceptions');
@@ -121,7 +122,7 @@ function Packages() {
                     });
                 } else {
                     logger.data("Package NOT found!");
-                    reject(new packageExceptions.PackageNotFoundException(name))
+                    resolve();
                 }
             })
             .catch(function(err) {
@@ -288,13 +289,13 @@ function Packages() {
             octokit.authenticate({
                 type: 'oauth',
                 token: token
-            });    
+            });
 
             // Wait for package info and do a bower lookup
             Q.all([self.getPackage(package.name), bower.lookup(package.name)]).then(function(results) {
                 var quarkData = results[0];
                 var bowerData = results[1];
-                
+
                 // If not bower data found
                 if (!bowerData) {
                     reject(new packageExceptions.PackageNotFoundInBowerException());                    
@@ -313,7 +314,11 @@ function Packages() {
 
                 // Get the user's data
                 octokit.users.get({}).then(function(user) {
-                    var login = user.data.login;                    
+                    var login = user.data.login;
+                    
+                    if (!user || !user.data || !user.data.login) {
+                        reject(new packageExceptions.GetUserDataException());
+                    }
 
                     logger.data("Found logged user: " + login);
 
@@ -324,7 +329,6 @@ function Packages() {
                         // Returns login data, valid user and no quark data
                         resolve({
                             login: login,
-                            valid: true,
                             quarkData: undefined
                         });
                     } else {
@@ -339,7 +343,6 @@ function Packages() {
                                 // Returns login data, valid user and quark data
                                 resolve({
                                     login: login,
-                                    valid: true,
                                     quarkData: quarkData
                                 });
 
@@ -349,13 +352,25 @@ function Packages() {
                             }
                         }
 
+                        // If the login is the user of the github repo
+                        if (login == owner) {
+                            logger.data("The specified user is the owner of the github repo");
+
+                            resolve({
+                                login: login,
+                                quarkData: quarkData
+                            });
+
+                            return
+                        }
+
                         logger.data("Checking if user is a package's repository collaborator");
 
-                        // If user is not the author of the package check if its a collaborator on github repo
+                        // If user is not the author of the package or the repo check if its a collaborator
                         octokit.repos.getCollaborators({
                             login: login,
                             owner: owner,
-                            repo: repo,
+                            repo: repo
                         }).then(function(collabs) {
                             // Validate response
                             if (!collabs || !collabs.data || !comp.isArray(collabs.data)) {
@@ -373,7 +388,6 @@ function Packages() {
                                     // Return the user data, valid flag and quark data
                                     resolve({
                                         login: login,
-                                        valid: true,
                                         quarkData: quarkData
                                     });
 
@@ -384,14 +398,16 @@ function Packages() {
                             logger.data("The specified user is NOT a collaborator of the repository");
 
                             // Return the user data and package data, but valid user flag set to false
-                            resolve({
-                                login: login,
-                                valid: false,
-                                quarkData: quarkData
-                            });
+                            reject(new authExceptions.UserUnauthorizedException(login));
                         })
                         .catch(function(error) {
-                            reject(new authExceptions.CantGetCollaboratorsException(error));
+                            // If can't get the collborators because of user throw unauthorized
+                            if (error.code == 403) {
+                                reject(new authExceptions.UserUnauthorizedException(login));
+                            } else {
+                                reject(new authExceptions.CantGetCollaboratorsException(error));
+                            }
+                            
                         });
                     }
                 })
@@ -523,10 +539,12 @@ function Packages() {
             // Set the package modification date
             package.dateModified = new Date();            
 
-            // If the logged user is not the package author set the package author
+            // If the logged user is not the package author set the package author and email
             // to the original author
+            // Only the original author can change the author and login of a package registration
             if (collabData.quarkData.author != collabData.login) {
                 package.author = collabData.quarkData.author;
+                package.email = collabData.quarkData.email;
             }
 
             // Update package query
@@ -549,31 +567,16 @@ function Packages() {
         return Q.Promise(function(resolve, reject) {
             // Validate if the user is the package author or a github repo collaborator
             validateCollaborator(package, token).then(function(data) {
-                // If its a valid user
-                if (data.valid) {
-                    // If data not exists for this package then insert, if exists update the package
-                    if (!data.quarkData) {
-                        insertPackage(package, data).then(resolve)
-                        .catch(function(error) {
-                            reject(new packageExceptions.ErrorRegisteringPackageException("inserting", error))
-                        });
-                    } else {
-                        updatePackage(package, data).then(resolve)
-                        .catch(function(error) {
-                            reject(new packageExceptions.ErrorRegisteringPackageException("updating", error))
-                        });
-                    }
+                // If data not exists for this package then insert, if exists update the package
+                if (!data.quarkData) {
+                    insertPackage(package, data).then(resolve)
+                    .catch(reject);
                 } else {
-                    reject(new packageExceptions.ErrorRegisteringPackageException("login", error));
+                    updatePackage(package, data).then(resolve)
+                    .catch(reject);
                 }
             })
-            .catch(function(error) {
-                if (error.code && error.code >= 400 && error.code <= 499) {
-                    reject(new packageExceptions.ErrorRegisteringPackageException("login", error));
-                } else {
-                    reject(new packageExceptions.ErrorRegisteringPackageException("github", error));
-                }                
-            })
+            .catch(reject);
         });
     }
 }
