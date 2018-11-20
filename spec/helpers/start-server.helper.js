@@ -17,6 +17,8 @@ var packagesRouter = proxyquire("../../routers/package.router", {
 var connector = require('../../data/connector');
 var logger = require("../../utils/logger");
 
+var testing = require("../utils/testing");
+
 // Disable logging
 logger.disableLog();
 
@@ -32,9 +34,8 @@ app.use('/package', packagesRouter);
 // User error handler middleware
 app.use(errorHandler);
 
-// Create connection pool
-connector.createConnectionPool('test');
-
-// Start listening on port 3000
-logger.info("Listening on port 3000");
-app.listen(3000);
+testing.startTestDb().then(function(url) {
+    /*connector.connect(url).then(function() {
+        app.listen(3000);
+    });*/
+})

@@ -37,89 +37,26 @@ function Packages() {
                     reject(new packageExceptions.InvalidVersionException(name, version));
                 }
             }
-            
-            // Get the package data
-            const sql = "SELECT * FROM package WHERE name = ?";
-            connector.query(sql, [name]).then(function(data) {
+
+            // Get the package from the collection
+            connector.db().collection('packages').findOne({ name: name }).then(function(package) {
                 // If a package is found
-                if (data && data.result.length) {
+                if (package) {
                     logger.data("Package found!");
 
-                    // Get the package info from the db result
-                    var package = data.result[0];
-                    // Initialize the package versions property
-                    package.versions = {};
-
-                    // Get the paths for the package
-                    const sqlPath = "SELECT * FROM path WHERE packageName = ?";
-                    var pathPromise = connector.query(sqlPath, [package.name]).then(function(data) {
-                        // Get paths info from the results
-                        var paths = data.result;
-
-                        // For each found path
-                        for (var i = 0; i < paths.length; i++) {
-                            // Get path data and version
-                            var path = paths[i];
-                            var packageVersion = path.packageVersion;
-
-                            // If the package version satisfies the specified version
-                            if (!version || semver.satisfies(version, packageVersion)) {
-                                // if package version property is not defined create it
-                                if (!package.versions[packageVersion]) {
-                                    package.versions[packageVersion] = {}
-                                }
-
-                                // if path property does not exists create it
-                                if (!package.versions[packageVersion].paths) {
-                                    package.versions[packageVersion].paths = {}
-                                }
-
-                                // Add the path to the version data
-                                package.versions[packageVersion].paths[path.name] = path.path;
+                    if (package.versions) {
+                        for (var packageVersion in package.versions) {                            
+                            packageVersion = unescapeKey(package, packageVersion);
+                                                    
+                            // If the package version does not satisfies the specified version
+                            if (version && !semver.satisfies(version, packageVersion)) {
+                                // Delete the version from the result
+                                delete package.versions[packageVersion];
                             }
                         }
-                    })
-                    .catch(function(err) {
-                        reject(new dbExceptions.QueryingDbException(err));
-                    });
+                    }
 
-                    // Get the shims of the package
-                    const sqlShim = "SELECT * FROM shim WHERE packageName = ?";
-                    var shimPromise = connector.query(sqlShim, [package.name]).then(function(data) {
-                        // Get shims info from the results
-                        var shims = data.result;
-
-                        // For each shim found
-                        for (var i = 0; i < shims.length; i++) {
-                            // Get shim data and version
-                            var shim = shims[i];
-                            var packageVersion = shim.packageVersion;
-
-                            // If the package version satisfies the specified version
-                            if (!version || semver.satisfies(version, packageVersion)) {
-                                // if package version property is not defined create it
-                                if (!package.versions[packageVersion]) {
-                                    package.versions[packageVersion] = {}
-                                }
-
-                                // if shim property does not exists create it
-                                if (!package.versions[packageVersion].shims) {
-                                    package.versions[packageVersion].shims = {}
-                                }
-
-                                // Add the shim to the version data
-                                package.versions[packageVersion].shims[shim.name] = shim.dep;
-                            }
-                        }
-                    })
-                    .catch(function(err) {
-                        reject(new dbExceptions.QueryingDbException(err));
-                    });
-
-                    // Wait for object to be complete and return
-                    Q.all([pathPromise, shimPromise]).then(function() {
-                        resolve(package);
-                    });
+                    resolve(package);
                 } else {
                     logger.data("Package NOT found!");
                     resolve();
@@ -128,7 +65,7 @@ function Packages() {
             .catch(function(err) {
                 reject(new dbExceptions.QueryingDbException(err));
             });
-        })
+        });
     }
 
     // Get package by name
@@ -146,7 +83,7 @@ function Packages() {
     }
     
     // Search packages by name and version
-    this.searchPackages = function(search, callback) {
+    this.searchPackages = function(search) {
         return Q.Promise(function(resolve, reject) {
             // Package names to search
             var names = new Array();
@@ -176,6 +113,7 @@ function Packages() {
 
                 // Validate the package version
                 var version = trimmedSearch[trimmed];
+
                 if (!semver.valid(version)) {
                     reject(new packageExceptions.InvalidVersionException(trimmed, version));
                 }
@@ -185,98 +123,61 @@ function Packages() {
             if (names.length) {
                 logger.data("Trying to find " + names.length + " packages");
 
-                // Get the specified packages
-                const sql = "SELECT * FROM package WHERE name IN (?)";                
-                connector.query(sql, [names]).then(function(data) {
+                connector.db().collection('packages').find({ name: { $in: names } }).toArray(function(err, packages) {
+                    if (err) {
+                        reject(new dbExceptions.QueryingDbException(err));
+                        return;
+                    }
+
                     // If packages are found
-                    if (data && data.result.length) {
-                        var packages = data.result;
-
+                    if (packages) {
                         logger.data("Found " + packages.length + " packages");
-
-                        const sqlPath = "SELECT * FROM path WHERE packageName = ?";
-                        const sqlShim = "SELECT * FROM shim WHERE packageName = ?";
-
-                        // Initialize a promises array
-                        var promises = new Array();
 
                         // Foreach package found
                         for (var i = 0; i < packages.length; i++) {
                             // Get the package data and searched version
                             let thisPackage = packages[i]; 
-                            let version = trimmedSearch[thisPackage.name];
+                            let searchVersion = trimmedSearch[thisPackage.name];
 
-                            // Initialize package paths and shims
-                            thisPackage.paths = {};
-                            thisPackage.shims = {};
-    
-                            // Get the paths of the package
-                            let pathPromise = connector.query(sqlPath, [thisPackage.name]).then(function(data) {
-                                let paths = data.result;
-        
-                                // For each path found
-                                for (let j = 0; j < paths.length; j++) {
-                                    // Get path data and version
-                                    let path = paths[j];
-                                    let packageVersion = path.packageVersion;
-        
-                                    // If package range satisfied specified version
-                                    if (semver.satisfies(version, packageVersion)) {
-                                        // Add the path to the version data
-                                        thisPackage.paths[path.name] = path.path;
-                                    }
-                                }
-                            })
-                            .catch(function(err) {
-                                reject(new dbExceptions.QueryingDbException(err));
-                            });
-                
-                            // Get the shims of the package
-                            let shimPromise = connector.query(sqlShim, [thisPackage.name]).then(function(data) {
-                                let shims = data.result;
-        
-                                // For each shim found
-                                for (let j = 0; j < shims.length; j++) {
-                                    // Get shim data and version
-                                    let shim = shims[j];
-                                    let packageVersion = shim.packageVersion;
-        
-                                    // If package range satisfied specified version
-                                    if (semver.satisfies(version, packageVersion)) {
-                                        // Add the shim to the version data
-                                        thisPackage.shims[shim.name] = shim.dep;
-                                    }
-                                }
-                            })
-                            .catch(function(err) {
-                                reject(new dbExceptions.QueryingDbException(err));
-                            });
+                            for (var version in thisPackage.versions) {
+                                // Unescape version
+                                version = unescapeKey(thisPackage, version);
 
-                            // Add the promises to the array
-                            promises.push(pathPromise);
-                            promises.push(shimPromise);
+                                // If package range satisfied specified version
+                                if (!semver.satisfies(searchVersion, version)) {
+                                    delete thisPackage.versions[version];
+                                }
+                            }
                         }
-    
-                        // Wait for all promises to complete then return the package
-                        Q.all(promises).then(function() {
-                            logger.data("Found packages!");
-                            resolve(packages);
-                        })
-                        .catch(function(err) {
-                            reject(err);
-                        })
+                        
+                        resolve(packages);                    
                     } else {
                         logger.data("Packages NOT found!");
                         reject(new packageExceptions.PackagesNotFoundException(names));
                     }
-                })
-                .catch(function(err) {
-                    reject(new dbExceptions.QueryingDbException(err));
                 })                
             } else {
                 logger.data("No specified package list to search");
                 reject(new packageExceptions.InvalidSearchParameterException());
             }
+        });
+    }
+
+    // Registers the package inserting or updating the data on the db
+    this.registerPackage = function(package, token) {
+        return Q.Promise(function(resolve, reject) {
+            // Validate if the user is the package author or a github repo collaborator
+            validateCollaborator(package, token).then(function(data) {
+                // If data not exists for this package then insert, if exists update the package
+                if (!data.quarkData) {
+                    insertPackage(package, data).then(resolve)
+                    .catch(reject);
+                } else {
+                    updatePackage(package, data).then(resolve)
+                    .catch(reject);
+                }
+            })
+            .catch(reject);
         });
     }
 
@@ -422,14 +323,35 @@ function Packages() {
         });
     }
 
-    function insertPackagePathAndShim(package, connection) {
-        return Q.Promise(function(resolve, reject) {
-            // Create a promises array for all the paths and shims inserts
-            var promises = new Array();
+    // Escapes . with @ in version key of the specified package and version
+    function escapeKey(package, version) {
+        if (package && package.versions && package.versions[version]) {
+            package.versions[version.replace(".", "@")] = package.versions[version];
+            delete package.versions[version];
+        }
+    }
 
-            // Queries for inserting path and shims
-            const sqlPath = "INSERT INTO path VALUES (?,?,?,?)";
-            const sqlShim = "INSERT INTO shim VALUES (?,?,?,?)";
+    // Unescapes @ with . in version key of the specified package and version    
+    function unescapeKey(package, version) {
+        if (package && package.versions && package.versions[version]) {
+            var newVersion = version.replace("@", ".");
+
+            package.versions[newVersion] = package.versions[version];
+            delete package.versions[version];
+
+            return newVersion;
+        }
+    }
+
+    // Inserts a package on the database
+    function insertPackage(package, collabData) {
+        return Q.Promise(function(resolve, reject) {
+            logger.data("Inserting specified package");
+        
+            // Set the package author and creation date
+            package.name = package.name.trim();
+            package.author = collabData.login;
+            package.dateCreated = new Date();
 
             // Validate versions property
             if (!comp.isObject(package.versions)) {
@@ -446,90 +368,23 @@ function Packages() {
                     reject(new packageExceptions.ErrorInPackageFormatException("versions." + version));
                 }
 
-                if (currentVersion.paths) {
-                    // Iterate over all paths in package versions
-                    for (var pathName in currentVersion.paths) {
-                        var path = currentVersion.paths[pathName];
-
-                        // Insert the path and store the promise on the array
-                        var pathPromise = connector.query(sqlPath, [package.name.trim(), version, pathName, path], connection)
-                            .catch(function(err) {
-                                reject(new dbExceptions.QueryingDbException(err));
-                            });
-
-                        promises.push(pathPromise);
-                    }
-                }
-
-                if (currentVersion.shims) {
-                    // Iterate over all shims in package versions
-                    for (var shimName in currentVersion.shims) {
-                        var shim = currentVersion.shims[shimName];
-                        
-                        // Insert the shim and store the promise on the array
-                        var shimPromise = connector.query(sqlShim, [package.name.trim(), version, shimName, shim], connection)
-                            .catch(function(err) {
-                                reject(new dbExceptions.QueryingDbException(err));
-                            });
-
-                        promises.push(shimPromise);
-                    }
-                }
+                escapeKey(package, version);
             }
-
-            // Wait for all paths and shims to be inserted
-            Q.all(promises).then(function() {
-                logger.info("Package path and shims Inserted!");
-                resolve(package);
-            })
-            .catch(reject);
-        })
-    }
-
-    // Deletes all paths and shims of the specified package
-    function deletePackagePathAndShim(package, connection) {
-        return Q.Promise(function(resolve, reject) {
-            // Path and shim delete queries
-            const sqlPath = "DELETE FROM path WHERE packageName = ?";
-            const sqlShim = "DELETE FROM shim WHERE packageName = ?";
-
-            // Execute both queries and get the promises
-            var pathPromise = connector.query(sqlPath, [package.name.trim()], connection)
-                .catch(reject);
-            var shimPromise = connector.query(sqlShim, [package.name.trim()], connection)
-                .catch(reject);
-
-            // Wait for both promises to execute
-            Q.all([pathPromise, shimPromise]).then(resolve)
-                .catch(reject);
-        })
-    }
-
-    // Inserts a package on the database
-    function insertPackage(package, collabData) {
-        return connector.transaction(function(connection, resolve, reject) {
-            logger.data("Inserting specified package");
-            
-            // Set the package author and creation date
-            package.author = collabData.login;
-            package.dateCreated = new Date();
-
-            // Package insert query
-            const sql = "INSERT INTO package VALUES (?,?,?,?,?)";
-
-            // Execute the insert, and then insert the paths and shims
-            connector.query(sql, [package.name.trim(), package.dateCreated, null, package.author, package.email], connection).then(function() {
-                insertPackagePathAndShim(package, connection).then(resolve)
-                .catch(reject);
-            })
-            .catch(reject);
+    
+            // Insert the new package
+            connector.db().collection('packages').insertOne(package)
+                .then(resolve)
+                .catch(reject);    
         });
     }
 
     // Updates the specified package
     function updatePackage(package, collabData) {
-        return connector.transaction(function(connection, resolve, reject) {
+        return Q.Promise(function(resolve, reject) {
             logger.data("Updating package");
+
+            // Trim the package name
+            package.name = package.name.trim();
 
             // Set the author as the login user if not specified in the package config
             if (!package.author) {
@@ -547,36 +402,26 @@ function Packages() {
                 package.email = collabData.quarkData.email;
             }
 
-            // Update package query
-            const sql = "UPDATE package SET dateModified = ?, author = ?, email = ? WHERE name = ?";
+            // Iterate over all versions in the package
+            for (var version in package.versions) {
+                var currentVersion = package.versions[version];
 
-            // Execute the update query, then delete all the existing path and shims and insert the new ones
-            connector.query(sql, [package.dateModified, package.author, package.email, package.name.trim()], connection).then(function() {
-                deletePackagePathAndShim(package, connection).then(function() {
-                    insertPackagePathAndShim(package, connection).then(resolve)
-                    .catch(reject);
-                })
-                .catch(reject);
-            })
-            .catch(reject);
-        });
-    }
-
-    // Registers the package inserting or updating the data on the db
-    this.registerPackage = function(package, token) {
-        return Q.Promise(function(resolve, reject) {
-            // Validate if the user is the package author or a github repo collaborator
-            validateCollaborator(package, token).then(function(data) {
-                // If data not exists for this package then insert, if exists update the package
-                if (!data.quarkData) {
-                    insertPackage(package, data).then(resolve)
-                    .catch(reject);
-                } else {
-                    updatePackage(package, data).then(resolve)
-                    .catch(reject);
+                // Validate version object to have paths and shim pairs
+                if (!comp.isObject(currentVersion.paths) && !comp.isObject(currentVersion.shims)) {
+                    reject(new packageExceptions.ErrorInPackageFormatException("versions." + version));
                 }
-            })
-            .catch(reject);
+
+                escapeKey(package, version);
+            }
+
+            // Upsert the package            
+            connector.db().collection('packages').updateOne(package, {
+                $set: {
+                    name: package.name
+                }
+            }, { upsert: true })
+                .then(resolve)
+                .catch(reject);    
         });
     }
 }

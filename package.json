@@ -29,7 +29,7 @@
     "express": "^4.16.2",
     "express-jsonschema": "^1.1.6",
     "minimist": "^1.2.0",
-    "mysql": "^2.16.0",
+    "mongodb": "^3.1.10",
     "proxyquire": "^2.1.0",
     "q": "^1.5.1",
     "request": "^2.88.0",

@@ -1,15 +1,18 @@
 var request = require('request');
 
-var config = require('../config.json');
-
 var testingUtils = require('./utils/testing');
 
 describe("Package Read Tests", function() {
-    beforeAll(function(done) {
-        testingUtils.resetTestDatabase()
-            .then(done)
-            .catch(done);
-    }, config.test.dbCleanTimeout);
+    beforeEach(function(done) {
+        //testingUtils.dropTestDb();
+
+        testingUtils.loadTestDb().then(done)
+            .catch(reject);        
+    }, 30000)
+
+    afterAll(function(done) {
+        testingUtils.stopTestDb();
+    })
 
     var server = 'http://localhost:3000';
 
@@ -45,7 +48,7 @@ describe("Package Read Tests", function() {
             validateTestPackage(expect, response, body, done);
         });
     });
-
+/*
     it("Must get the test package correctly trimming the package name", function(done) {
         request.get({ url: server + '/package/%20%20bootstrap%20', json: true }, function(error, response, body) {                            
             validateTestPackage(expect, response, body, done);
@@ -355,5 +358,5 @@ describe("Package Read Tests", function() {
 
             done();
         });
-    });
+    });*/
 })

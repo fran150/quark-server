@@ -1,48 +1,38 @@
-var fs = require('fs');
+const mongoUnit = require('mongo-unit');
 var Q = require('q');
 
-var connector = require('../../data/connector');
-
-// Read arguments
-var argv = require('minimist')(process.argv.slice(2));
-var env = argv["_"] || "develop";
-
-var config = require('../../config.json');
+const mockData = require('../db/mock.data.json');
 
 function TestingUtils() {
-    this.getDbCleanTimeout = function() {
-        return config[env].dbCleanTimeout;
-    }
+    var testUrl;
 
-    this.resetTestDatabase = function() {
+    this.startTestDb = function() {
         return Q.Promise(function(resolve, reject) {
-            if (env != 'production') {
-                fs.readFile('./database/quark-database.sql', 'utf8', function(err, dbCreation) {
-                    if (!err) {
-                        fs.readFile('./database/test-cases.sql', 'utf8', function(err, testCases) {
-                            if (!err) {
-                                var sql = dbCreation + "\r\n" + testCases;
+            console.log("START");
 
-                                connector.query(sql, {}).then(function(result) { 
-                                    resolve(result);
-                                })
-                                .catch(function(err) {
-                                    reject(err);
-                                })
-                            } else {
-                                reject(err);
-                            }
-                        })
-                    } else {
-                        reject(err);
-                    }
-                });
-            } else {
-                reject(new Error('Connector is set to the production environment'));
-            }    
-        });
+            var promise = mongoUnit.start();
+
+
+            mongoUnit.getUrl();
+
+            promise.catch(function(err) {
+                console.log("ERROR");
+            })
+            
+        })
     }
-    
+
+    this.dropTestDb = function() {
+        return mongoUnit.drop();
+    }
+
+    this.stopTestDb = function() {
+        mongoUnit.stop();
+    }
+
+    this.loadTestDb = function() {
+        mongoUnit.initDb(testUrl, mockData);
+    }    
 }
 
 module.exports = new TestingUtils();

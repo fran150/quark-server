@@ -4,38 +4,21 @@ function BaseDbException(err) {
     BaseExceptions.InfrastructureException.call(this);
     this.type = "BaseDbException";
     this.message = "";
-    this.mysqlError = err;
+    this.mongoError = err;
 }
 
 BaseDbException.prototype = Object.create(BaseExceptions.InfrastructureException.prototype);
 BaseDbException.prototype.constructor = BaseDbException;
 
-function ConnectionPoolNotCreatedException() {
-    BaseDbException.call(this);
-    this.type = 'ConnectionPoolNotCreatedException';
-    this.message = "Error creating connection pool. Verify the parameters in the config.json file";
-}
-
-ConnectionPoolNotCreatedException.prototype = Object.create(BaseDbException.prototype);
-ConnectionPoolNotCreatedException.prototype.constructor = ConnectionPoolNotCreatedException;
-
-function ErrorGettingConnection(err) {
+function CantConnectToDbException(err) {
     BaseDbException.call(this, err);
-    this.type = 'ErrorGettingConnection';
-    this.message = "Error getting connection from the connection pool";
+    this.type = 'CantConnectToDbException';
+    this.message = "Error connecting to the database";
 }
 
-ErrorGettingConnection.prototype = Object.create(BaseDbException.prototype);
-ErrorGettingConnection.prototype.constructor = ErrorGettingConnection;
+CantConnectToDbException.prototype = Object.create(BaseDbException.prototype);
+CantConnectToDbException.prototype.constructor = CantConnectToDbException;
 
-function ErrorGettingConnectionPool(err) {
-    BaseDbException.call(this, err);
-    this.type = 'ErrorGettingConnectionPool';
-    this.message = "Connection pool not created, call the method createConnectionPool before issuing any database command";
-}
-
-ErrorGettingConnectionPool.prototype = Object.create(BaseDbException.prototype);
-ErrorGettingConnectionPool.prototype.constructor = ErrorGettingConnectionPool;
 
 function QueryingDbException(err) {
     BaseDbException.call(this, err);
@@ -46,19 +29,18 @@ function QueryingDbException(err) {
 QueryingDbException.prototype = Object.create(BaseDbException.prototype);
 QueryingDbException.prototype.constructor = QueryingDbException;
 
-function TransactionException(err) {
+function ClosingDbException(err) {
     BaseDbException.call(this, err);
-    this.type = 'TransactionException';
-    this.message = "An error ocurred managing the transaction";
+    this.type = 'ClosingDbException';
+    this.message = "An error ocurred while closing connection to the database";
 }
 
-TransactionException.prototype = Object.create(BaseDbException.prototype);
-TransactionException.prototype.constructor = TransactionException;
+ClosingDbException.prototype = Object.create(BaseDbException.prototype);
+ClosingDbException.prototype.constructor = ClosingDbException;
 
 module.exports = {
     "BaseDbException": BaseDbException,
-    "ConnectionPoolNotCreatedException": ConnectionPoolNotCreatedException,
     "ErrorGettingConnection": ErrorGettingConnection,
     "QueryingDbException": QueryingDbException,
-    "TransactionException": TransactionException
+    "ClosingDbException": ClosingDbException
 }

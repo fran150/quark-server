@@ -21,8 +21,9 @@ app.use('/package', packagesRouter);
 app.use(errorHandler);
 
 // Create connection pool
-connector.createConnectionPool();
+connector.connect().then(function() {
+    // Start listening on port 3000
+    logger.info("Listening on port 3000");
+    app.listen(3000);
+}).done();
 
-// Start listening on port 3000
-logger.info("Listening on port 3000");
-app.listen(3000);
