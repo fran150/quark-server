@@ -15,7 +15,6 @@ var authExceptions = require('../exceptions/auth.exceptions');
 // Get utilities
 var logger = require('../utils/logger');
 var connector = require('./connector');
-var bower = require('../utils/bower');
 var comp = require('../utils/comparsion');
 
 function Packages() {
@@ -79,25 +78,6 @@ function Packages() {
         });
     }
 
-    // Registers the package inserting or updating the data on the db
-    this.registerPackage = function(package, token) {
-        return Q.Promise(function(resolve, reject) {
-            // Validate if the user is the package author or a github repo collaborator
-            validateCollaborator(package, token).then(function(data) {
-                // If data not exists for this package then insert, if exists update the package
-                if (!data.quarkData) {
-                    insertPackage(package, data).then(resolve)
-                    .catch(reject);
-                } else {
-                    updatePackage(package, data).then(resolve)
-                    .catch(reject);
-                }
-            })
-            .catch(reject);
-        });
-    }
-
-
     // Escapes . with @ in version key of the specified package and version
     function escapeKey(package, version) {
         if (package && package.versions && package.versions[version]) {
@@ -119,30 +99,10 @@ function Packages() {
     }
 
     // Inserts a package on the database
-    function insertPackage(package, collabData) {
+    this.insertPackage = function(package) {
         return Q.Promise(function(resolve, reject) {
-            logger.data("Inserting specified package");
-        
-            // Set the package author and creation date
-            package.name = package.name.trim();
-            package.author = collabData.login;
-            package.dateCreated = new Date();
-
-            // Validate versions property
-            if (!comp.isObject(package.versions)) {
-                reject(new packageExceptions.ErrorInPackageFormatException("versions"));
-                return;
-            }
-
             // Iterate over all versions in the package
             for (var version in package.versions) {
-                var currentVersion = package.versions[version];
-
-                // Validate version object to have paths and shim pairs
-                if (!comp.isObject(currentVersion.paths) && !comp.isObject(currentVersion.shims)) {
-                    reject(new packageExceptions.ErrorInPackageFormatException("versions." + version));
-                }
-
                 escapeKey(package, version);
             }
     
@@ -154,38 +114,10 @@ function Packages() {
     }
 
     // Updates the specified package
-    function updatePackage(package, collabData) {
+    this.updatePackage = function(package) {
         return Q.Promise(function(resolve, reject) {
-            logger.data("Updating package");
-
-            // Trim the package name
-            package.name = package.name.trim();
-
-            // Set the author as the login user if not specified in the package config
-            if (!package.author) {
-                package.author = collabData.login;
-            }
-
-            // Set the package modification date
-            package.dateModified = new Date();            
-
-            // If the logged user is not the package author set the package author and email
-            // to the original author
-            // Only the original author can change the author and login of a package registration
-            if (collabData.quarkData.author != collabData.login) {
-                package.author = collabData.quarkData.author;
-                package.email = collabData.quarkData.email;
-            }
-
             // Iterate over all versions in the package
             for (var version in package.versions) {
-                var currentVersion = package.versions[version];
-
-                // Validate version object to have paths and shim pairs
-                if (!comp.isObject(currentVersion.paths) && !comp.isObject(currentVersion.shims)) {
-                    reject(new packageExceptions.ErrorInPackageFormatException("versions." + version));
-                }
-
                 escapeKey(package, version);
             }
 
