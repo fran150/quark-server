@@ -1,21 +1,11 @@
-// Get libraries
-var url = require('url');
-var path = require('path');
-
 var Q = require('q');
 
-const octokit = require('@octokit/rest')();
-
 // Get exceptions
-var baseExceptions = require('../exceptions/base.exceptions');
 var dbExceptions = require('../exceptions/db.exceptions');
-var packageExceptions = require('../exceptions/package.exceptions');
-var authExceptions = require('../exceptions/auth.exceptions');
 
 // Get utilities
 var logger = require('../utils/logger');
 var connector = require('./connector');
-var comp = require('../utils/comparsion');
 
 function Packages() {
     var self = this;
@@ -49,7 +39,7 @@ function Packages() {
     }
     
     // Search packages by name and version
-    this.searchPackages = function(names) {
+    this.search = function(names) {
         return Q.Promise(function(resolve, reject) {
             connector.db().collection('packages').find({ name: { $in: names } }).toArray(function(err, packages) {
                 if (err) {

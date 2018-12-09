@@ -40,7 +40,7 @@ ClosingDbException.prototype.constructor = ClosingDbException;
 
 module.exports = {
     "BaseDbException": BaseDbException,
-    "ErrorGettingConnection": ErrorGettingConnection,
+    "CantConnectToDbException": CantConnectToDbException,
     "QueryingDbException": QueryingDbException,
     "ClosingDbException": ClosingDbException
 }

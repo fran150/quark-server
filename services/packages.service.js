@@ -1,3 +1,7 @@
+// Get libraries
+var url = require('url');
+var path = require('path');
+
 var Q = require("Q");
 var semver = require('semver');
 var bower = require('../utils/bower');
@@ -5,7 +9,12 @@ var bower = require('../utils/bower');
 var dataSource = require("../data/packages.data");
 var githubDataSource = require("../data/github.data");
 
-var packageExceptions = require("../exceptions/package.exceptions");
+var packageExceptions = require('../exceptions/package.exceptions');
+var authExceptions = require('../exceptions/auth.exceptions');
+
+var logger = require('../utils/logger');
+
+var comp = require('../utils/comparsion');
 
 function PackagesService() {
     var self = this;
@@ -15,7 +24,6 @@ function PackagesService() {
         return Q.Promise(function(resolve, reject) {
             // Trim inputs
             name = name.trim();
-            version = version.trim();
         
             // Validate package name
             if (!name) {
@@ -24,6 +32,8 @@ function PackagesService() {
             
             // Validate version (if specified)
             if (version) {
+                version = version.trim();
+
                 if (!semver.valid(version)) { 
                     reject(new packageExceptions.InvalidVersionException(name, version));
                 }
@@ -31,17 +41,20 @@ function PackagesService() {
         
             // Get package from datasource
             dataSource.getPackage(name).then(function(package) {
-                // Search all package versions
-                for (var packageVersion in package.versions) {
-                    // If the package version does not satisfies the specified version
-                    if (version && !semver.satisfies(version, packageVersion)) {
-                        // Delete the version from the result
-                        delete package.versions[packageVersion];
+                if (package && package.versions) {
+                    // Search all package versions
+                    for (var packageVersion in package.versions) {
+                        // If the package version does not satisfies the specified version
+                        if (version && !semver.satisfies(version, packageVersion)) {
+                            // Delete the version from the result
+                            delete package.versions[packageVersion];
+                        }
                     }
                 }
 
                 resolve(package);
-            });
+            })
+            .catch(reject);
         })
     }
 
@@ -100,7 +113,7 @@ function PackagesService() {
             if (names.length) {
                 logger.data("Trying to find " + names.length + " packages");
 
-                data.search(names).then(function(packages) {
+                dataSource.search(names).then(function(packages) {
                     if (packages) {
                         logger.data("Found " + packages.length + " packages");
 
@@ -149,108 +162,110 @@ function PackagesService() {
     }
 
     function validateCollaborator(package, token) {
-        logger.data("Authenticating token");
+        return Q.Promise(function(resolve, reject) {
+            logger.data("Authenticating token");
 
-        // Wait for package info and a bower lookup
-        Q.all([self.getPackage(package.name), bower.lookup(package.name)]).then(function(results) {
-            var quarkData = results[0];
-            var bowerData = results[1];
+            // Wait for package info and a bower lookup
+            Q.all([self.getPackage(package.name), bower.lookup(package.name)]).then(function(results) {
+                var quarkData = results[0];
+                var bowerData = results[1];
 
-            // If not bower data found
-            if (!bowerData) {
-                reject(new packageExceptions.PackageNotFoundInBowerException());                    
-                return;
-            }
+                // If not bower data found
+                if (!bowerData) {
+                    reject(new packageExceptions.PackageNotFoundInBowerException());                    
+                    return;
+                }
 
-            // Parse the found url in bower (http://github.com/<owner>/<repo>)
-            var urlParts = url.parse(bowerData.url);
-            var pathParts = urlParts.pathname.split('/');
+                // Parse the found url in bower (http://github.com/<owner>/<repo>)
+                var urlParts = url.parse(bowerData.url);
+                var pathParts = urlParts.pathname.split('/');
+                
+                // Get the owner and repo from the url
+                var owner = pathParts[1];
+                var repo = path.basename(pathParts[2], '.git');
+
+                logger.data("Get logged user and repository");
             
-            // Get the owner and repo from the url
-            var owner = pathParts[1];
-            var repo = path.basename(pathParts[2], '.git');
+                githubDataSource.getUser(token).then(function(user) {
+                    var login = user.data.login;
 
-            logger.data("Get logged user and repository");
-        
-            githubDataSource.getUser(token).then(function(user) {
-                var login = user.data.login;
+                    logger.data("Found logged user: " + login);
 
-                logger.data("Found logged user: " + login);
+                    // If there's is no quark data on the db
+                    if (!quarkData) {
+                        logger.data("Quark package not found. Will insert new package");
 
-                // If there's is no quark data on the db
-                if (!quarkData) {
-                    logger.data("Quark package not found. Will insert new package");
+                        // Returns login data, valid user and no quark data
+                        resolve({
+                            login: login,
+                            quarkData: undefined
+                        });
+                    } else {
+                        // If the package is already on the db, check the author
+                        if (quarkData.author) {
+                            logger.data("Checking if user is who registered the package");
 
-                    // Returns login data, valid user and no quark data
-                    resolve({
-                        login: login,
-                        quarkData: undefined
-                    });
-                } else {
-                    // If the package is already on the db, check the author
-                    if (quarkData.author) {
-                        logger.data("Checking if user is who registered the package");
+                            // If the author is the logged user
+                            if (quarkData.author == login) {
+                                logger.data("The specified user is who registered the package");
 
-                        // If the author is the logged user
-                        if (quarkData.author == login) {
-                            logger.data("The specified user is who registered the package");
+                                // Returns login data, valid user and quark data
+                                resolve({
+                                    login: login,
+                                    quarkData: quarkData
+                                });
 
-                            // Returns login data, valid user and quark data
+                                return
+                            } else {
+                                logger.data("The specified user is not the owner of the package");
+                            }
+                        }
+
+                        // If the login is the user of the github repo
+                        if (login == owner) {
+                            logger.data("The specified user is the owner of the github repo");
+
                             resolve({
                                 login: login,
                                 quarkData: quarkData
                             });
 
                             return
-                        } else {
-                            logger.data("The specified user is not the owner of the package");
                         }
-                    }
 
-                    // If the login is the user of the github repo
-                    if (login == owner) {
-                        logger.data("The specified user is the owner of the github repo");
+                        logger.data("Checking if user is a package's repository collaborator");
 
-                        resolve({
-                            login: login,
-                            quarkData: quarkData
-                        });
+                        githubDataSource.getCollaborators(token, login, owner, repo).then(function(collabs) {
+                            // Iterate over the found collaborators
+                            for (var i = 0; i < collabs.data.length; i++) {
+                                var collaborator = collabs.data[i].login;
 
-                        return
-                    }
+                                // If the logged user is a collaborator in the github repo
+                                if (collaborator == login) {
+                                    logger.data("The specified user is a collaborator of the repository");
+                                    
+                                    // Return the user data, valid flag and quark data
+                                    resolve({
+                                        login: login,
+                                        quarkData: quarkData
+                                    });
 
-                    logger.data("Checking if user is a package's repository collaborator");
-
-                    githubDataSource.getCollaborators(token, login, owner, repo).then(function(collabs) {
-                        // Iterate over the found collaborators
-                        for (var i = 0; i < collabs.data.length; i++) {
-                            var collaborator = collabs.data[i].login;
-
-                            // If the logged user is a collaborator in the github repo
-                            if (collaborator == login) {
-                                logger.data("The specified user is a collaborator of the repository");
-                                
-                                // Return the user data, valid flag and quark data
-                                resolve({
-                                    login: login,
-                                    quarkData: quarkData
-                                });
-
-                                return;
+                                    return;
+                                }
                             }
-                        }
 
-                        logger.data("The specified user is NOT a collaborator of the repository");
+                            logger.data("The specified user is NOT a collaborator of the repository");
 
-                        // Return the user data and package data, but valid user flag set to false
-                        reject(new authExceptions.UserUnauthorizedException(login));
-                    })
-                    .then(reject);
-                }
+                            // Return the user data and package data, but valid user flag set to false
+                            reject(new authExceptions.UserUnauthorizedException(login));
+                        })
+                        .catch(reject);
+                    }
+                })
+                .catch(reject);
             })
-            .then(reject);
-        })
-        .then(reject);    
+            .catch(reject);    
+        });
     }
 
     // Inserts a package on the database

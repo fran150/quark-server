@@ -1,5 +1,6 @@
 var Q = require('q');
-var mongoose = require('mongoose');
+
+const MongoClient = require('mongodb').MongoClient;
 
 // Exceptions
 var dbExceptions = require('../exceptions/db.exceptions');
@@ -12,6 +13,9 @@ var config = require('../config.json');
 function Connector() {
     var self = this;
 
+    var client;
+    var db;
+
     this.connect = function(url) {
         return Q.Promise(function(resolve, reject) {
             // If the database connection is not specified
@@ -22,16 +26,29 @@ function Connector() {
             
             logger.info("Connecting to database");
 
-            mongoose.connect(url, function(err) {
+            client = new MongoClient(url);
+
+            client.connect(function(err) {
                 if (err) {
                     logger.error("Error connecting to the database");
-                    reject(new dbExceptions.CantConnectToDbException(err));                        
+                    reject(new dbExceptions.CantConnectToDbException(err));
                 } else {
                     logger.info("Connected to database");
-                    resolve();
+                    
+                    db = client.db(config.database.name);                
+
+                    resolve(db);
                 }
             });
         });
+    }
+
+    this.db = function() {
+        if (!db) {
+            reject(new dbExceptions.CantConnectToDbException(err));
+        } else {
+            return db;
+        }
     }
 }
 

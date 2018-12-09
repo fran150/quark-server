@@ -7,7 +7,7 @@ var validate = require('express-jsonschema').validate;
 var validateToken = require('../middlewares/token-validator.middle');
 
 // Data layer
-var data = require('../data/packages.data');
+var service = require('../services/packages.service');
 
 var logger = require('../utils/logger');
 
@@ -24,7 +24,7 @@ router.use(express.json());
 router.get('/:name', function(req, res, next) {
     logger.get("/package/" + req.params.name);
 
-    data.getPackage(req.params.name).then(function(package) {
+    service.getPackage(req.params.name).then(function(package) {
         if (package) {
             res.json(package);
         } else {
@@ -37,7 +37,7 @@ router.get('/:name', function(req, res, next) {
 router.get('/:name/:version', function(req, res, next) {
     logger.get("/package/" + req.params.name + "/" + req.params.version);
 
-    data.getPackageVersion(req.params.name, req.params.version).then(function(package) {
+    service.getPackageVersion(req.params.name, req.params.version).then(function(package) {
         if (package) {
             res.json(package);
         } else {
@@ -50,7 +50,7 @@ router.get('/:name/:version', function(req, res, next) {
 router.post('/search', validate({ body: PackageRequestSchema }), function(req, res, next) {
     logger.post("/package/search");
 
-    data.searchPackages(req.body).then(function(list) {
+    service.searchPackages(req.body).then(function(list) {
         res.json(list);
     })
     .catch(next);    
@@ -59,7 +59,7 @@ router.post('/search', validate({ body: PackageRequestSchema }), function(req, r
 router.post('', validate({ body: PackageSchema }, [VersionSchema]), validateToken, function(req, res, next) {
     logger.post("/package");
 
-    data.registerPackage(req.body, req.header("token")).then(function(result) {
+    service.registerPackage(req.body, req.header("token")).then(function(result) {
         res.json(result);
     })
     .catch(next);

@@ -1,6 +1,10 @@
 var Q = require('q');
 const octokit = require('@octokit/rest')();
 
+var packageExceptions = require('../exceptions/package.exceptions');
+var authExceptions = require('../exceptions/auth.exceptions');
+
+
 function CollaboratorData() {
     // Gets the repo collaborators
     this.getCollaborators = function(token, login, owner, repo) {
