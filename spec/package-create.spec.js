@@ -1,21 +1,6 @@
 var request = require('request');
 
-var config = require('../config.json');
-
-var testingUtils = require('./utils/testing');
-
 describe("Package register tests", function() {
-    beforeEach(function(done) {
-        //testingUtils.dropTestDb();
-
-        testingUtils.loadTestDb().then(done)
-            .catch(reject);        
-    }, 30000)
-
-    afterAll(function(done) {
-        testingUtils.stopTestDb();
-    })
-
     var server = 'http://localhost:3000';
 
     it("Must update the bootstrap package correctly", function(done) {
@@ -58,6 +43,7 @@ describe("Package register tests", function() {
             body: bootstrapPackage, 
             headers: { token: "fran150" } 
         }, function(error, response, body) {
+            console.log(body);
             expect(response.statusCode).toBe(200);
 
             request.get({ url: server + '/package/bootstrap', json: true }, function(error, response, body) {

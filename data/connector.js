@@ -45,7 +45,7 @@ function Connector() {
 
     this.db = function() {
         if (!db) {
-            reject(new dbExceptions.CantConnectToDbException(err));
+            throw new dbExceptions.CantConnectToDbException();
         } else {
             return db;
         }

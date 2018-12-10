@@ -1,19 +1,6 @@
 var request = require('request');
 
-var testingUtils = require('./utils/testing');
-
 describe("Package Read Tests", function() {
-    beforeEach(function(done) {
-        //testingUtils.dropTestDb();
-
-        testingUtils.loadTestDb().then(done)
-            .catch(reject);        
-    }, 30000)
-
-    afterAll(function(done) {
-        testingUtils.stopTestDb();
-    })
-
     var server = 'http://localhost:3000';
 
     function validateTestPackage(expect, response, body, done) {
