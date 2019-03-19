@@ -1,10 +1,9 @@
 
 var bower = require('bower');
 var Q = require('q');
-var logger = require('./logger');
 
-module.exports = {
-    lookup: function(package) {
+function Bower(logger) {
+    this.lookup = function(package) {
         return Q.Promise(function(resolve, reject) {
             logger.data("Looking up bower package " + package);
 
@@ -17,5 +16,7 @@ module.exports = {
                     reject(data);
                 })
         })
-    }        
+    }
 }
+
+module.exports = Bower;

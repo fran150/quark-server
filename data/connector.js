@@ -1,16 +1,10 @@
 var Q = require('q');
 
-const MongoClient = require('mongodb').MongoClient;
-
 // Exceptions
 var dbExceptions = require('../exceptions/db.exceptions');
 
-// Utils
-var logger = require('../utils/logger');
-var config = require('../config.json');
-
 // Connector to the database
-function Connector() {
+function Connector(MongoClient, logger, config) {
     var self = this;
 
     var client;
@@ -52,4 +46,4 @@ function Connector() {
     }
 }
 
-module.exports = new Connector();
+module.exports = Connector;

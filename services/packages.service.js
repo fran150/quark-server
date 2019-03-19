@@ -1,22 +1,13 @@
-// Get libraries
 var url = require('url');
 var path = require('path');
 
 var Q = require("Q");
 var semver = require('semver');
-var bower = require('../utils/bower');
-
-var dataSource = require("../data/packages.data");
-var githubDataSource = require("../data/github.data");
 
 var packageExceptions = require('../exceptions/package.exceptions');
 var authExceptions = require('../exceptions/auth.exceptions');
 
-var logger = require('../utils/logger');
-
-var comp = require('../utils/comparsion');
-
-function PackagesService() {
+function PackagesService(db, github, bower, logger, comparsion) {
     var self = this;
 
     // Returns the package filtering for the specified version
@@ -39,8 +30,8 @@ function PackagesService() {
                 }
             }
         
-            // Get package from datasource
-            dataSource.getPackage(name).then(function(package) {
+            // Get package from db
+            db.getPackage(name).then(function(package) {
                 if (package && package.versions) {
                     // Search all package versions
                     for (var packageVersion in package.versions) {
@@ -79,7 +70,7 @@ function PackagesService() {
             var names = new Array();
 
             // Validate search parameter
-            if (!comp.isObject(search)) {
+            if (!comparsion.isObject(search)) {
                 reject(new packageExceptions.InvalidSearchParameterException());
             }
 
@@ -113,7 +104,7 @@ function PackagesService() {
             if (names.length) {
                 logger.data("Trying to find " + names.length + " packages");
 
-                dataSource.search(names).then(function(packages) {
+                db.search(names).then(function(packages) {
                     if (packages) {
                         logger.data("Found " + packages.length + " packages");
 
@@ -186,7 +177,7 @@ function PackagesService() {
 
                 logger.data("Get logged user and repository");
             
-                githubDataSource.getUser(token).then(function(user) {
+                github.getUser(token).then(function(user) {
                     var login = user.data.login;
 
                     logger.data("Found logged user: " + login);
@@ -235,7 +226,7 @@ function PackagesService() {
 
                         logger.data("Checking if user is a package's repository collaborator");
 
-                        githubDataSource.getCollaborators(token, login, owner, repo).then(function(collabs) {
+                        github.getCollaborators(token, login, owner, repo).then(function(collabs) {
                             // Iterate over the found collaborators
                             for (var i = 0; i < collabs.data.length; i++) {
                                 var collaborator = collabs.data[i].login;
@@ -279,7 +270,7 @@ function PackagesService() {
             package.dateCreated = new Date();
 
             // Validate versions property
-            if (!comp.isObject(package.versions)) {
+            if (!comparsion.isObject(package.versions)) {
                 reject(new packageExceptions.ErrorInPackageFormatException("versions"));
                 return;
             }
@@ -289,12 +280,12 @@ function PackagesService() {
                 var currentVersion = package.versions[version];
 
                 // Validate version object to have paths and shim pairs
-                if (!comp.isObject(currentVersion.paths) && !comp.isObject(currentVersion.shims)) {
+                if (!comparsion.isObject(currentVersion.paths) && !comparsion.isObject(currentVersion.shims)) {
                     reject(new packageExceptions.ErrorInPackageFormatException("versions." + version));
                 }
             }
     
-            dataSource.insertPackage(package).then(resolve)
+            db.insertPackage(package).then(resolve)
                 .catch(reject);
         });
     }
@@ -328,15 +319,15 @@ function PackagesService() {
                 var currentVersion = package.versions[version];
 
                 // Validate version object to have paths and shim pairs
-                if (!comp.isObject(currentVersion.paths) && !comp.isObject(currentVersion.shims)) {
+                if (!comparsion.isObject(currentVersion.paths) && !comparsion.isObject(currentVersion.shims)) {
                     reject(new packageExceptions.ErrorInPackageFormatException("versions." + version));
                 }
             }
 
-            dataSource.updatePackage(package).then(resolve)
+            db.updatePackage(package).then(resolve)
                 .catch(reject);
         });
     }
 }
 
-module.exports = new PackagesService();
+module.exports = PackagesService;

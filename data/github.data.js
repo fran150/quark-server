@@ -1,11 +1,9 @@
 var Q = require('q');
-const octokit = require('@octokit/rest')();
 
 var packageExceptions = require('../exceptions/package.exceptions');
 var authExceptions = require('../exceptions/auth.exceptions');
 
-
-function CollaboratorData() {
+function CollaboratorData(octokit) {
     // Gets the repo collaborators
     this.getCollaborators = function(token, login, owner, repo) {
         // Sets the authentication method for future requests
@@ -64,4 +62,4 @@ function CollaboratorData() {
     }
 }
 
-module.exports = new CollaboratorData();
+module.exports = CollaboratorData;

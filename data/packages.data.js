@@ -3,11 +3,7 @@ var Q = require('q');
 // Get exceptions
 var dbExceptions = require('../exceptions/db.exceptions');
 
-// Get utilities
-var logger = require('../utils/logger');
-var connector = require('./connector');
-
-function Packages() {
+function Packages(connector, logger) {
     var self = this;
 
     // Gets a package and version data
@@ -123,4 +119,4 @@ function Packages() {
     }
 }
 
-module.exports = new Packages();
+module.exports = Packages;
