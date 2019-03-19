@@ -1,7 +1,7 @@
 var request = require('request');
 
 describe("Package Read Tests", function() {
-    var server = 'http://localhost:3000';
+    var server = 'http://127.0.0.1:3000';
 
     function validateTestPackage(expect, response, body, done) {
         // Check status code
@@ -31,7 +31,7 @@ describe("Package Read Tests", function() {
     }
 
     it("Must get the test package correctly", function(done) {
-        request.get({ url: server + '/package/bootstrap', json: true }, function(error, response, body) {                            
+        request.get({ url: server + '/package/bootstrap', json: true, proxy: "" }, function(error, response, body) {                            
             validateTestPackage(expect, response, body, done);
         });
     });
