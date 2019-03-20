@@ -1,54 +1,36 @@
 // Get proxyquire
 var proxyquire = require('proxyquire');
 
-// Get express framework
-var express = require("express");
-
-// Mock the octokit and mongodb
+// Mock the octokit and mongodb libraries
 var octokitMock = require("../mocks/octokit.mock");
 var connectorMock = require("../mocks/connector.mock");
 
-// Get data layer mocks
-var dataMock = proxyquire("../../data/packages.data", {
+// Get the data layer packages with mocked connectors
+var dataSource = proxyquire("../../data/packages.data", {
     "./connector": connectorMock
 });
 
-var githubMock = proxyquire("../../data/github.data", {
+var githubSource = proxyquire("../../data/github.data", {
     "@octokit/rest": octokitMock
 });
 
-// Service layer mock
-var serviceMock = proxyquire('../../services/packages.service', {
-    "../data/packages.data": dataMock,
-    "../data/github.data": githubMock
+// Get services layer
+var service = proxyquire('../../services/packages.service', {
+    "../data/packages.data": dataSource,
+    "../data/github.data": githubSource
 });
 
-// Router mock
+// Get the routers
 var packagesRouter = proxyquire("../../routers/package.router", {
-    "../services/packages.service": serviceMock
+    "../services/packages.service": service
 });
-
-// Get utils
-var connector = connectorMock;
-var logger = require("../../utils/logger");
 
 // Disable logging
+var logger = require("../../utils/logger");
 logger.disableLog();
 
-// Get middlewares
-var errorHandler = require("../../middlewares/error-handler.middle");
-
-// Init express
-var app = express();
-
-// Add package router
-app.use('/package', packagesRouter);
-
-// User error handler middleware
-app.use(errorHandler);
-
-connector.connect().then(function() {
-    // Start listening on port 3000
-    logger.info("Listening on port 3000");
-    app.listen(3000);
-}).done();
+// Load main app
+proxyquire('../../app', {
+    './data/connector': connectorMock,
+    "./routers/package.router": packagesRouter
+})

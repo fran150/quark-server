@@ -28,6 +28,7 @@ function PackagesService() {
             // Validate package name
             if (!name) {
                 reject(new packageExceptions.NameNotSpecifiedException());
+                return;
             }
             
             // Validate version (if specified)
@@ -36,6 +37,7 @@ function PackagesService() {
 
                 if (!semver.valid(version)) { 
                     reject(new packageExceptions.InvalidVersionException(name, version));
+                    return;
                 }
             }
         
@@ -81,6 +83,7 @@ function PackagesService() {
             // Validate search parameter
             if (!comp.isObject(search)) {
                 reject(new packageExceptions.InvalidSearchParameterException());
+                return;
             }
 
             var trimmedSearch = {};
@@ -93,6 +96,7 @@ function PackagesService() {
                 // Validate package name
                 if (!trimmed) {
                     reject(new packageExceptions.NameNotSpecifiedException());
+                    return;
                 }
 
                 // Add the name to the search array
@@ -106,6 +110,7 @@ function PackagesService() {
 
                 if (!semver.valid(version)) {
                     reject(new packageExceptions.InvalidVersionException(trimmed, version));
+                    return;
                 }
             }
 
@@ -114,7 +119,7 @@ function PackagesService() {
                 logger.data("Trying to find " + names.length + " packages");
 
                 dataSource.search(names).then(function(packages) {
-                    if (packages) {
+                    if (packages && packages.length > 0) {
                         logger.data("Found " + packages.length + " packages");
 
                         // Foreach package found
@@ -124,22 +129,38 @@ function PackagesService() {
                             let searchVersion = trimmedSearch[thisPackage.name];
 
                             for (var version in thisPackage.versions) {
+                                thisPackage.paths = {};
+                                thisPackage.shims = {};
+
                                 // If package range satisfied specified version
-                                if (!semver.satisfies(searchVersion, version)) {
-                                    delete thisPackage.versions[version];
+                                if (semver.satisfies(searchVersion, version)) {
+                                    var pkg = thisPackage.versions[version].paths;
+                                    var shm = thisPackage.versions[version].shims;
+
+                                    if (pkg) {
+                                        thisPackage.paths = pkg;
+                                    }
+
+                                    if (shm) {
+                                        thisPackage.shims = shm;
+                                    }
                                 }
                             }
+
+                            delete thisPackage.versions;
                         }
                         
                         resolve(packages);
                     } else {
                         logger.data("Packages NOT found!");
                         reject(new packageExceptions.PackagesNotFoundException(names));
+                        return;
                     }    
                 });
             } else {
                 logger.data("No specified package list to search");
                 reject(new packageExceptions.InvalidSearchParameterException());
+                return;
             }
         });
     }
@@ -258,6 +279,7 @@ function PackagesService() {
 
                             // Return the user data and package data, but valid user flag set to false
                             reject(new authExceptions.UserUnauthorizedException(login));
+                            return;
                         })
                         .catch(reject);
                     }
@@ -291,6 +313,7 @@ function PackagesService() {
                 // Validate version object to have paths and shim pairs
                 if (!comp.isObject(currentVersion.paths) && !comp.isObject(currentVersion.shims)) {
                     reject(new packageExceptions.ErrorInPackageFormatException("versions." + version));
+                    return;
                 }
             }
     
@@ -330,6 +353,7 @@ function PackagesService() {
                 // Validate version object to have paths and shim pairs
                 if (!comp.isObject(currentVersion.paths) && !comp.isObject(currentVersion.shims)) {
                     reject(new packageExceptions.ErrorInPackageFormatException("versions." + version));
+                    return;
                 }
             }
 

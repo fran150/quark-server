@@ -1,4 +1,5 @@
 var request = require('request');
+var utils = require('./utils');
 
 describe("Package Read Tests", function() {
     var server = 'http://127.0.0.1:3000';
@@ -31,19 +32,19 @@ describe("Package Read Tests", function() {
     }
 
     it("Must get the test package correctly", function(done) {
-        request.get({ url: server + '/package/bootstrap', json: true, proxy: "" }, function(error, response, body) {                            
+        request.get(utils.getConfig('/package/bootstrap'), function(error, response, body) {                            
             validateTestPackage(expect, response, body, done);
         });
     });
-/*
+
     it("Must get the test package correctly trimming the package name", function(done) {
-        request.get({ url: server + '/package/%20%20bootstrap%20', json: true }, function(error, response, body) {                            
+        request.get(utils.getConfig('/package/%20%20bootstrap%20'), function(error, response, body) {                            
             validateTestPackage(expect, response, body, done);
         });
     });
 
     it("Must fail indicating package not found", function(done) {
-        request.get({ url: server + '/package/inexistent', json: true }, function(error, response, body) {
+        request.get(utils.getConfig('/package/inexistent'), function(error, response, body) {
             // Check the status code
             expect(response.statusCode).toBe(500);
 
@@ -54,32 +55,8 @@ describe("Package Read Tests", function() {
         });
     });
 
-    it("Must fail indicating package not found avoiding query injection", function(done) {
-        request.get({ url: server + "/package/bootstrap'%20AND%20'1'='1", json: true }, function(error, response, body) {
-            // Check the status code
-            expect(response.statusCode).toBe(500);
-
-            // Check the error type
-            expect(body.type).toBe("PackageNotFoundException");
-
-            done();
-        });
-    });    
-
     it("Must fail indicating package name not specified", function(done) {
-        request.get({ url: server + "/package/%20%20", json: true }, function(error, response, body) {
-            // Check status code
-            expect(response.statusCode).toBe(500);
-            
-            // Check the error type
-            expect(body.type).toBe("NameNotSpecifiedException");
-
-            done();
-        });
-    });    
-
-    it("Must fail indicating package name not specified", function(done) {
-        request.get({ url: server + "/package/%20%20", json: true }, function(error, response, body) {
+        request.get(utils.getConfig("/package/%20%20"), function(error, response, body) {
             // Check status code
             expect(response.statusCode).toBe(500);
             
@@ -91,7 +68,7 @@ describe("Package Read Tests", function() {
     });    
 
     it("Must get only the 2.x versions", function(done) {
-        request.get({ url: server + '/package/bootstrap/2.2.1', json: true }, function(error, response, body) {                            
+        request.get(utils.getConfig('/package/bootstrap/2.2.1'), function(error, response, body) {                            
           // Check status code
           expect(response.statusCode).toBe(200);
 
@@ -111,7 +88,7 @@ describe("Package Read Tests", function() {
     });
 
     it("Must get only the 3.x versions", function(done) {
-        request.get({ url: server + '/package/bootstrap/3.3.2', json: true }, function(error, response, body) {                            
+        request.get(utils.getConfig('/package/bootstrap/3.3.2'), function(error, response, body) {                            
           // Check status code
           expect(response.statusCode).toBe(200);
 
@@ -131,7 +108,7 @@ describe("Package Read Tests", function() {
     });
 
     it("Must get the package but no versions", function(done) {
-        request.get({ url: server + '/package/bootstrap/1.1.0', json: true }, function(error, response, body) {                            
+        request.get(utils.getConfig('/package/bootstrap/1.1.0'), function(error, response, body) {                            
           // Check status code
           expect(response.statusCode).toBe(200);
 
@@ -151,7 +128,7 @@ describe("Package Read Tests", function() {
     });    
 
     it("Must fail indicating that an invalid version was specified", function(done) {
-        request.get({ url: server + '/package/bootstrap/3.3.qw', json: true }, function(error, response, body) {                            
+        request.get(utils.getConfig('/package/bootstrap/3.3.qw'), function(error, response, body) {                            
           // Check status code
           expect(response.statusCode).toBe(500);
 
@@ -168,7 +145,7 @@ describe("Package Read Tests", function() {
             "qk-alchemy": "1.0.0"
         };
 
-        request.post({ url: server + '/package/search', body: body, json: true }, function(error, response, body) {                            
+        request.post(utils.getConfig('/package/search', body), function(error, response, body) {                            
             // Check status code
             expect(response.statusCode).toBe(200);
 
@@ -179,6 +156,8 @@ describe("Package Read Tests", function() {
             expect(body[0].dateCreated).toEqual(new Date('2018-08-14 00:00:00').toISOString());
             expect(body[0].dateModified).toBeNull();
             expect(body[0].email).toBe('panchi150@gmail.com');
+            
+            expect(body[0].versions).toBeUndefined();
 
             expect(body[0].paths).toBeDefined();
             expect(body[0].shims).toBeDefined();
@@ -187,9 +166,11 @@ describe("Package Read Tests", function() {
             expect(body[0].paths['bootstrap/css']).toBe('bootstrap/dist/css/bootstrap.min');        
 
             expect(body[1].name).toBe('qk-alchemy');
-            expect(body[1].dateCreated).toEqual(new Date('2018-08-15 00:00:00').toISOString());
+            expect(body[1].dateCreated).toBe(new Date('2018-09-14 00:00:00').toISOString());
             expect(body[1].dateModified).toBeNull();
             expect(body[1].email).toBe('panchi150@gmail.com');
+
+            expect(body[1].versions).toBeUndefined();
 
             expect(body[1].paths).toBeDefined();
             expect(body[1].shims).toBeDefined();
@@ -207,7 +188,7 @@ describe("Package Read Tests", function() {
             "qk-alchemy    ": "1.0.0"
         };
 
-        request.post({ url: server + '/package/search', body: body, json: true }, function(error, response, body) {                            
+        request.post(utils.getConfig('/package/search', body), function(error, response, body) {                            
             // Check status code
             expect(response.statusCode).toBe(200);
 
@@ -226,7 +207,7 @@ describe("Package Read Tests", function() {
             expect(body[0].paths['bootstrap/css']).toBe('bootstrap/dist/css/bootstrap.min');        
 
             expect(body[1].name).toBe('qk-alchemy');
-            expect(body[1].dateCreated).toEqual(new Date('2018-08-15 00:00:00').toISOString());
+            expect(body[1].dateCreated).toEqual(new Date('2018-09-14 00:00:00').toISOString());
             expect(body[1].dateModified).toBeNull();
             expect(body[1].email).toBe('panchi150@gmail.com');
 
@@ -243,7 +224,7 @@ describe("Package Read Tests", function() {
     it("Must throw invalid search parameter when body is an empty object", function(done) {
         var body = {};
 
-        request.post({ url: server + '/package/search', body: body, json: true }, function(error, response, body) {
+        request.post(utils.getConfig('/package/search', body), function(error, response, body) {
             // Check status code
             expect(response.statusCode).toBe(500);
 
@@ -258,7 +239,7 @@ describe("Package Read Tests", function() {
             "test": 1234
         };
 
-        request.post({ url: server + '/package/search', body: body, json: true }, function(error, response, body) {
+        request.post(utils.getConfig('/package/search', body), function(error, response, body) {
             // Check status code
             expect(response.statusCode).toBe(400);
 
@@ -277,7 +258,7 @@ describe("Package Read Tests", function() {
             "test": "1.2qweqwe"
         };
 
-        request.post({ url: server + '/package/search', body: body, json: true }, function(error, response, body) {
+        request.post(utils.getConfig('/package/search', body), function(error, response, body) {
             // Check status code
             expect(response.statusCode).toBe(500);
 
@@ -293,7 +274,7 @@ describe("Package Read Tests", function() {
             "test2": "1.0.0"
         };
 
-        request.post({ url: server + '/package/search', body: body, json: true }, function(error, response, body) {
+        request.post(utils.getConfig('/package/search', body), function(error, response, body) {
             // Check status code
             expect(response.statusCode).toBe(500);
 
@@ -311,7 +292,7 @@ describe("Package Read Tests", function() {
             "test": "1.0.0"
         };
 
-        request.post({ url: server + '/package/search', body: body, json: true }, function(error, response, body) {                            
+        request.post(utils.getConfig('/package/search', body), function(error, response, body) {                            
             // Check status code
             expect(response.statusCode).toBe(200);
 
@@ -332,7 +313,7 @@ describe("Package Read Tests", function() {
 
             // Validate qk-alchemy package
             expect(body[1].name).toBe('qk-alchemy');
-            expect(body[1].dateCreated).toEqual(new Date('2018-08-15 00:00:00').toISOString());
+            expect(body[1].dateCreated).toEqual(new Date('2018-09-14 00:00:00').toISOString());
             expect(body[1].dateModified).toBeNull();
             expect(body[1].email).toBe('panchi150@gmail.com');
 
@@ -345,5 +326,5 @@ describe("Package Read Tests", function() {
 
             done();
         });
-    });*/
+    });
 })

@@ -26,4 +26,3 @@ connector.connect().then(function() {
     logger.info("Listening on port 3000");
     app.listen(3000);
 }).done();
-
