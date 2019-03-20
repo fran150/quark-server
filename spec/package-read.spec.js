@@ -25,7 +25,7 @@ describe("Package Read Tests", function() {
         expect(body.versions["3.x"].paths['bootstrap/css']).toBe('bootstrap/dist/css/bootstrap.min');
 
         // Check shims
-        expect(body.versions["3.x"].shims['bootstrap/js']).toBe('jquery');
+        expect(body.versions["3.x"].shims['bootstrap/js']).toEqual(['jquery']);
 
         done();
     }

@@ -18,7 +18,7 @@ var githubMock = proxyquire("../../data/github.data", {
 });
 
 // Service layer mock
-var serviceMock = require('../../services/packages.service', {
+var serviceMock = proxyquire('../../services/packages.service', {
     "../data/packages.data": dataMock,
     "../data/github.data": githubMock
 });

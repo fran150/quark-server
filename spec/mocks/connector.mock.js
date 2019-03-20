@@ -11,7 +11,7 @@ function Connector() {
     var packages = {
         bootstrap: {
             name: "bootstrap",
-            dateCreated: new Date(2018, 8, 14, 0, 0, 0),
+            dateCreated: new Date('2018-08-14 00:00:00').toISOString(),
             dateModified: null,
             author: "fran150",
             email: "panchi150@gmail.com",
@@ -27,8 +27,8 @@ function Connector() {
                 },
                 "3@x": {
                     paths: {
-                        "bootstrap/js": "bootstrap/js/bootstrap.min",
-                        "bootstrap/css": "bootstrap/css/bootstrap.min"
+                        "bootstrap/js": "bootstrap/dist/js/bootstrap.min",
+                        "bootstrap/css": "bootstrap/dist/css/bootstrap.min"
                     },
                     shims: {
                         "bootstrap/js": ["jquery"]
@@ -80,7 +80,9 @@ function Connector() {
                     return result;
                 },
                 findOne: function(query) {
-                    return packages[query.name];
+                    return Q.Promise(function(resolve, reject) {
+                        resolve(packages[query.name]);
+                    });
                 },
                 insertOne: function(package) {
                     packages[package.name] = package;
