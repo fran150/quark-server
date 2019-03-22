@@ -1,9 +1,6 @@
 var request = require('request');
-
-/*
+var utils = require('./utils');
 describe("Package register tests", function() {
-    var server = 'http://localhost:3000';
-
     it("Must update the bootstrap package correctly", function(done) {
         var bootstrapPackage = {
             name: "bootstrap",
@@ -38,21 +35,15 @@ describe("Package register tests", function() {
             }
         };
         
-        request.post({ 
-            url: server + '/package', 
-            json: true, 
-            body: bootstrapPackage, 
-            headers: { token: "fran150" } 
-        }, function(error, response, body) {
-            console.log(body);
+        request.post(utils.getConfig('/package', bootstrapPackage, "fran150"), function(error, response, body) {
             expect(response.statusCode).toBe(200);
 
-            request.get({ url: server + '/package/bootstrap', json: true }, function(error, response, body) {
+            request.get(utils.getConfig('/package/bootstrap'), function(error, response, body) {
                 expect(response.statusCode).toBe(200);
 
                 // Check main body
                 expect(body.name).toBe('bootstrap');
-                expect(body.dateCreated).toEqual(new Date('2018-08-14 00:00:00').toISOString());
+                expect(body.dateCreated).toEqual(new Date(2018, 8, 14).toISOString());
                 expect(body.dateModified).not.toBeNull();
                 expect(body.email).toBe('panchi150@gmail.com');
                 
@@ -70,9 +61,9 @@ describe("Package register tests", function() {
                 expect(body.versions["3.x"].paths['bootstrap/css']).toBe('bootstrap/dist/css/bootstrap.min');
 
                 // Check shims
-                expect(body.versions["1.x"].shims['test']).toBe('jquery');
-                expect(body.versions["2.x"].shims['bootstrap/js']).toBe('jquery');
-                expect(body.versions["3.x"].shims['bootstrap/js']).toBe('jquery');
+                expect(body.versions["1.x"].shims['test']).toEqual(['jquery']);
+                expect(body.versions["2.x"].shims['bootstrap/js']).toEqual(['jquery']);
+                expect(body.versions["3.x"].shims['bootstrap/js']).toEqual(['jquery']);
 
                 done();
             })
@@ -94,22 +85,17 @@ describe("Package register tests", function() {
             }
         };
 
-        request.post({ 
-            url: server + '/package', 
-            json: true, 
-            body: package, 
-            headers: { token: "fran150" } 
-        }, function(error, response, body) {
+        request.post(utils.getConfig('/package', package, "fran150"), function(error, response, body) {
             expect(response.statusCode).toBe(200);
 
-            request.get({ url: server + '/package/test', json: true }, function(error, response, body) {
+            request.get(utils.getConfig('/package/test'), function(error, response, body) {
                 expect(response.statusCode).toBe(200);
 
                 // Check main body
                 expect(body.name).toBe('test');
                 expect(body.author).toBe('fran150');
                 expect(body.dateCreated).not.toBeNull();                
-                expect(body.dateModified).toBeNull();
+                expect(body.dateModified).toBeUndefined();
                 expect(body.email).toBe('panchi150@gmail.com');
                 
                 // Check version object
@@ -578,4 +564,4 @@ describe("Package register tests", function() {
 
         });
     });      
-})*/
+})

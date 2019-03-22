@@ -10,7 +10,7 @@ describe("Package Read Tests", function() {
 
         // Check main body
         expect(body.name).toBe('bootstrap');
-        expect(body.dateCreated).toEqual(new Date('2018-08-14 00:00:00').toISOString());
+        expect(body.dateCreated).toEqual(new Date(2018, 8, 14).toISOString());
         expect(body.dateModified).toBeNull();
         expect(body.email).toBe('panchi150@gmail.com');
         
@@ -74,7 +74,7 @@ describe("Package Read Tests", function() {
 
           // Check main body
           expect(body.name).toBe('bootstrap');
-          expect(body.dateCreated).toEqual(new Date('2018-08-14 00:00:00').toISOString());
+          expect(body.dateCreated).toEqual(new Date(2018, 8, 14).toISOString());
           expect(body.dateModified).toBeNull();
           expect(body.email).toBe('panchi150@gmail.com');
           
@@ -94,7 +94,7 @@ describe("Package Read Tests", function() {
 
           // Check main body
           expect(body.name).toBe('bootstrap');
-          expect(body.dateCreated).toEqual(new Date('2018-08-14 00:00:00').toISOString());
+          expect(body.dateCreated).toEqual(new Date(2018, 8, 14).toISOString());
           expect(body.dateModified).toBeNull();
           expect(body.email).toBe('panchi150@gmail.com');
           
@@ -114,7 +114,7 @@ describe("Package Read Tests", function() {
 
           // Check main body
           expect(body.name).toBe('bootstrap');
-          expect(body.dateCreated).toEqual(new Date('2018-08-14 00:00:00').toISOString());
+          expect(body.dateCreated).toEqual(new Date(2018, 8, 14).toISOString());
           expect(body.dateModified).toBeNull();
           expect(body.email).toBe('panchi150@gmail.com');
           
@@ -153,7 +153,7 @@ describe("Package Read Tests", function() {
             expect(body.length).toBe(2);
 
             expect(body[0].name).toBe('bootstrap');
-            expect(body[0].dateCreated).toEqual(new Date('2018-08-14 00:00:00').toISOString());
+            expect(body[0].dateCreated).toEqual(new Date(2018, 8, 14).toISOString());
             expect(body[0].dateModified).toBeNull();
             expect(body[0].email).toBe('panchi150@gmail.com');
             
@@ -166,7 +166,7 @@ describe("Package Read Tests", function() {
             expect(body[0].paths['bootstrap/css']).toBe('bootstrap/dist/css/bootstrap.min');        
 
             expect(body[1].name).toBe('qk-alchemy');
-            expect(body[1].dateCreated).toBe(new Date('2018-09-14 00:00:00').toISOString());
+            expect(body[1].dateCreated).toBe(new Date(2018, 9, 14).toISOString());
             expect(body[1].dateModified).toBeNull();
             expect(body[1].email).toBe('panchi150@gmail.com');
 
@@ -196,7 +196,7 @@ describe("Package Read Tests", function() {
             expect(body.length).toBe(2);
 
             expect(body[0].name).toBe('bootstrap');
-            expect(body[0].dateCreated).toEqual(new Date('2018-08-14 00:00:00').toISOString());
+            expect(body[0].dateCreated).toEqual(new Date(2018, 8, 14).toISOString());
             expect(body[0].dateModified).toBeNull();
             expect(body[0].email).toBe('panchi150@gmail.com');
 
@@ -207,7 +207,7 @@ describe("Package Read Tests", function() {
             expect(body[0].paths['bootstrap/css']).toBe('bootstrap/dist/css/bootstrap.min');        
 
             expect(body[1].name).toBe('qk-alchemy');
-            expect(body[1].dateCreated).toEqual(new Date('2018-09-14 00:00:00').toISOString());
+            expect(body[1].dateCreated).toEqual(new Date(2018, 9, 14).toISOString());
             expect(body[1].dateModified).toBeNull();
             expect(body[1].email).toBe('panchi150@gmail.com');
 
@@ -301,7 +301,7 @@ describe("Package Read Tests", function() {
 
             // Validate bootstrap package
             expect(body[0].name).toBe('bootstrap');
-            expect(body[0].dateCreated).toEqual(new Date('2018-08-14 00:00:00').toISOString());
+            expect(body[0].dateCreated).toEqual(new Date(2018, 8, 14).toISOString());
             expect(body[0].dateModified).toBeNull();
             expect(body[0].email).toBe('panchi150@gmail.com');
 
@@ -313,7 +313,7 @@ describe("Package Read Tests", function() {
 
             // Validate qk-alchemy package
             expect(body[1].name).toBe('qk-alchemy');
-            expect(body[1].dateCreated).toEqual(new Date('2018-09-14 00:00:00').toISOString());
+            expect(body[1].dateCreated).toEqual(new Date(2018, 9, 14).toISOString());
             expect(body[1].dateModified).toBeNull();
             expect(body[1].email).toBe('panchi150@gmail.com');
 

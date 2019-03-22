@@ -6,67 +6,14 @@ var dbExceptions = require('../../exceptions/db.exceptions');
 // Utils
 var logger = require('../../utils/logger');
 
-var data = {
-    clone: function() {
-        return JSON.parse(JSON.stringify(this));
-    },
-    bootstrap: {
-        name: "bootstrap",
-        dateCreated: new Date('2018-08-14 00:00:00').toISOString(),
-        dateModified: null,
-        author: "fran150",
-        email: "panchi150@gmail.com",
-        versions: {
-            "2@x": {
-                paths: {
-                    "bootstrap/js": "bootstrap/js/bootstrap.min",
-                    "bootstrap/css": "bootstrap/css/bootstrap.min"
-                },
-                shims: {
-                    "bootstrap/js": ["jquery"]
-                }
-            },
-            "3@x": {
-                paths: {
-                    "bootstrap/js": "bootstrap/dist/js/bootstrap.min",
-                    "bootstrap/css": "bootstrap/dist/css/bootstrap.min"
-                },
-                shims: {
-                    "bootstrap/js": ["jquery"]
-                }
-            }                
-        }
-    },
-    "qk-alchemy": {
-        name: "qk-alchemy",
-        dateCreated: new Date(2018, 8, 14, 0, 0, 0),
-        dateModified: null,
-        author: "fran150",
-        email: "panchi150@gmail.com",
-        versions: {
-            "1@x": {
-                paths: {
-                    "qk-alchemy": "qk-alchemy"
-                }
-            }
-        }
-    },
-    "qk-bootstrap": {
-        name: "qk-bootstrap",
-        dateCreated: new Date(2018, 8, 14, 0, 0, 0),
-        dateModified: null,
-        author: "fran150",
-        email: "panchi150@gmail.com",
-        versions: {
-            "1@x": {
-                paths: {
-                    "qk-bootstrap": "qk-bootstrap"
-                }
-            }
-        }
-    }
-}
+// Mock packages data
+var data = require('./data/packages');
 
+var utils = require('../utils');
+
+function clone(item) {
+    return JSON.parse(JSON.stringify(item));
+}
 
 // Connector to the database
 function Connector() {
@@ -77,7 +24,7 @@ function Connector() {
                     var result = new Array();
                     var names = query.name["$in"];
 
-                    var packages = data.clone();
+                    var packages = clone(data);
 
                     for (var i = 0; i < names.length; i++) {
                         if (packages[names[i]]) {
@@ -93,15 +40,21 @@ function Connector() {
                 },
                 findOne: function(query) {
                     return Q.Promise(function(resolve, reject) {
-                        var packages = data.clone();
+                        var packages = clone(data);
                         resolve(packages[query.name]);
                     });
                 },
                 insertOne: function(package) {
-                    packages[package.name] = package;
+                    return Q.Promise(function(resolve, reject) {
+                        data[package.name] = package;
+                        resolve();
+                    });                    
                 },
-                updateOne: function() {
-                    packages[package.name] = package;
+                updateOne:function(package, query) {
+                    return Q.Promise(function(resolve, reject) {
+                        utils.map(package, data[query["$set"].name]);
+                        resolve();
+                    });                    
                 }
             }
         }
