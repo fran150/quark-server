@@ -1,5 +1,6 @@
 var request = require('request');
 var utils = require('./utils');
+
 describe("Package register tests", function() {
     it("Must update the bootstrap package correctly", function(done) {
         var bootstrapPackage = {
@@ -114,12 +115,7 @@ describe("Package register tests", function() {
         var testPackage = {
         }
 
-        request.post({ 
-            url: server + '/package', 
-            json: true, 
-            body: testPackage, 
-            headers: { token: "fran150" } 
-        }, function(error, response, body) {
+        request.post(utils.getConfig('/package', testPackage, "fra150"), function(error, response, body) {
             expect(response.statusCode).toBe(400);
 
             expect(body.validations).toEqual({
@@ -147,12 +143,7 @@ describe("Package register tests", function() {
             "versions": "Will Fail"
         }
 
-        request.post({ 
-            url: server + '/package', 
-            json: true, 
-            body: testPackage, 
-            headers: { token: "fran150" } 
-        }, function(error, response, body) {
+        request.post(utils.getConfig('/package', testPackage, "fran150"), function(error, response, body) {
             expect(response.statusCode).toBe(400);
 
             expect(body.validations).toEqual({
@@ -193,12 +184,7 @@ describe("Package register tests", function() {
             }
         }
 
-        request.post({ 
-            url: server + '/package', 
-            json: true, 
-            body: testPackage, 
-            headers: { token: "fran150" } 
-        }, function(error, response, body) {
+        request.post(utils.getConfig('/package', testPackage, "fran150"), function(error, response, body) {
             expect(response.statusCode).toBe(400);
 
             expect(body.validations).toEqual({
@@ -226,12 +212,7 @@ describe("Package register tests", function() {
             }
         }
 
-        request.post({ 
-            url: server + '/package', 
-            json: true, 
-            body: testPackage, 
-            headers: { token: "fran150" } 
-        }, function(error, response, body) {
+        request.post(utils.getConfig('/package', testPackage, "fran150"), function(error, response, body) {
             expect(response.statusCode).toBe(400);
 
             expect(body.validations).toEqual({
@@ -260,12 +241,7 @@ describe("Package register tests", function() {
             }
         }
 
-        request.post({ 
-            url: server + '/package', 
-            json: true, 
-            body: testPackage, 
-            headers: { token: "fran150" } 
-        }, function(error, response, body) {
+        request.post(utils.getConfig('/package', testPackage, "fran150"), function(error, response, body) {
             expect(response.statusCode).toBe(400);
 
             expect(body.validations).toEqual({
@@ -304,12 +280,7 @@ describe("Package register tests", function() {
             }
         }
 
-        request.post({ 
-            url: server + '/package', 
-            json: true, 
-            body: testPackage, 
-            headers: { token: "fran150" } 
-        }, function(error, response, body) {
+        request.post(utils.getConfig('/package', testPackage, "fran150"), function(error, response, body) {
             expect(response.statusCode).toBe(400);
 
             expect(body.validations).toEqual({
@@ -348,12 +319,7 @@ describe("Package register tests", function() {
             }
         }
 
-        request.post({ 
-            url: server + '/package', 
-            json: true, 
-            body: testPackage, 
-            headers: { token: "fran150" } 
-        }, function(error, response, body) {
+        request.post(utils.getConfig('/package', testPackage, "fran150"), function(error, response, body) {
             expect(response.statusCode).toBe(500);
 
             expect(body.type).toBe("PackageNotFoundInBowerException");
@@ -378,12 +344,7 @@ describe("Package register tests", function() {
             }
         }
 
-        request.post({ 
-            url: server + '/package', 
-            json: true, 
-            body: testPackage, 
-            headers: { token: "john-spartan" } 
-        }, function(error, response, body) {
+        request.post(utils.getConfig('/package', testPackage, "john-spartan"), function(error, response, body) {
             expect(response.statusCode).toBe(403);
 
             expect(body.type).toBe("UserUnauthorizedException");
@@ -409,22 +370,17 @@ describe("Package register tests", function() {
             }
         }
 
-        request.post({ 
-            url: server + '/package', 
-            json: true, 
-            body: testPackage, 
-            headers: { token: "collaborator" } 
-        }, function(error, response, body) {
+        request.post(utils.getConfig('/package', testPackage, "collaborator"), function(error, response, body) {
             expect(response.statusCode).toBe(200);
 
-            request.get({ url: server + '/package/test2', json: true }, function(error, response, body) {
+            request.get(utils.getConfig('/package/test2', testPackage, "collaborator"), function(error, response, body) {
                 expect(response.statusCode).toBe(200);
 
                 // Check main body
                 expect(body.name).toBe('test2');
                 expect(body.author).toBe('collaborator');
                 expect(body.dateCreated).not.toBeNull();                
-                expect(body.dateModified).toBeNull();
+                expect(body.dateModified).toBeUndefined();
                 expect(body.email).toBe('panchi150@gmail.com');
                 
                 // Check version object
@@ -456,15 +412,10 @@ describe("Package register tests", function() {
             }
         }
 
-        request.post({ 
-            url: server + '/package', 
-            json: true, 
-            body: testPackage, 
-            headers: { token: "fran150" } 
-        }, function(error, response, body) {
+        request.post(utils.getConfig('/package', testPackage, "fran150"), function(error, response, body) {
             expect(response.statusCode).toBe(200);
 
-            request.get({ url: server + '/package/qk-alchemy', json: true }, function(error, response, body) {
+            request.get(utils.getConfig('/package/qk-alchemy', testPackage, "fran150"), function(error, response, body) {
                 expect(response.statusCode).toBe(200);
 
                 // Check main body
@@ -503,15 +454,10 @@ describe("Package register tests", function() {
             }
         }
 
-        request.post({ 
-            url: server + '/package', 
-            json: true, 
-            body: testPackage, 
-            headers: { token: "collaborator" } 
-        }, function(error, response, body) {
+        request.post(utils.getConfig('/package', testPackage, "collaborator"), function(error, response, body) {
             expect(response.statusCode).toBe(200);
 
-            request.get({ url: server + '/package/qk-bootstrap', json: true }, function(error, response, body) {
+            request.get(utils.getConfig('/package/qk-bootstrap', testPackage, "collaborator"), function(error, response, body) {
                 expect(response.statusCode).toBe(200);
 
                 // Check main body
@@ -550,12 +496,7 @@ describe("Package register tests", function() {
             }
         }
 
-        request.post({ 
-            url: server + '/package', 
-            json: true, 
-            body: testPackage, 
-            headers: { token: "" } 
-        }, function(error, response, body) {
+        request.post(utils.getConfig('/package', testPackage, ""), function(error, response, body) {
             expect(response.statusCode).toBe(401);
 
             expect(body.type).toBe("TokenNotSpecifiedException");

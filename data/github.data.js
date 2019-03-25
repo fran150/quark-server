@@ -4,38 +4,42 @@ const octokit = require('@octokit/rest')();
 var packageExceptions = require('../exceptions/package.exceptions');
 var authExceptions = require('../exceptions/auth.exceptions');
 
+var comp = require('../utils/comparsion');
 
 function CollaboratorData() {
+
     // Gets the repo collaborators
     this.getCollaborators = function(token, login, owner, repo) {
-        // Sets the authentication method for future requests
-        octokit.authenticate({
-            type: 'oauth',
-            token: token
-        });
+        return Q.Promise(function(resolve, reject) {
+            // Sets the authentication method for future requests
+            octokit.authenticate({
+                type: 'oauth',
+                token: token
+            });
 
-        // If user is not the author of the package or the repo check if its a collaborator
-        octokit.repos.getCollaborators({
-            login: login,
-            owner: owner,
-            repo: repo
+            // If user is not the author of the package or the repo check if its a collaborator
+            octokit.repos.getCollaborators({
+                login: login,
+                owner: owner,
+                repo: repo
+            })
+            .then(function(collabs) {
+                // Validate response
+                if (!collabs || !collabs.data || !comp.isArray(collabs.data)) {
+                    reject(new authExceptions.CantGetCollaboratorsException("No collaborators data"));
+                } else {
+                    resolve(collabs);
+                }
+            })
+            .catch(function(error) {
+                // If can't get the collborators because of user throw unauthorized
+                if (error.code == 403) {
+                    reject(new authExceptions.UserUnauthorizedException(login));
+                } else {
+                    reject(new authExceptions.CantGetCollaboratorsException(error));
+                }            
+            });
         })
-        .then(function(collab) {
-            // Validate response
-            if (!collabs || !collabs.data || !comp.isArray(collabs.data)) {
-                reject(new authExceptions.CantGetCollaboratorsException("No collaborators data"));
-            } else {
-                resolve(collab);
-            }
-        })
-        .catch(function(error) {
-            // If can't get the collborators because of user throw unauthorized
-            if (error.code == 403) {
-                reject(new authExceptions.UserUnauthorizedException(login));
-            } else {
-                reject(new authExceptions.CantGetCollaboratorsException(error));
-            }            
-        });
     }
 
     // Validate if the user is the package owner or a collaborator
