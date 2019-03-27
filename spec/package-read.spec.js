@@ -1,8 +1,11 @@
 var request = require('request');
 var utils = require('./utils');
+var connector = require('./mocks/connector.mock');
 
 describe("Package Read Tests", function() {
-    var server = 'http://127.0.0.1:3000';
+    beforeAll(function() {
+        connector.reset();
+    })
 
     function validateTestPackage(expect, response, body, done) {
         // Check status code

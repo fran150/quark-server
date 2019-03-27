@@ -3,7 +3,7 @@ var config = require('./config.json');
 
 function Utils() {
     this.getConfig = function(url, body, token) {
-        var req = config.server.config;
+        var req = JSON.parse(JSON.stringify(config.server.config));
         req.url = config.server.base + url;
 
         if (body) {

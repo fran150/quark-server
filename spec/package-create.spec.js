@@ -1,7 +1,12 @@
 var request = require('request');
 var utils = require('./utils');
+var connector = require('./mocks/connector.mock');
 
 describe("Package register tests", function() {
+    beforeAll(function() {
+        connector.reset();
+    })
+
     it("Must update the bootstrap package correctly", function(done) {
         var bootstrapPackage = {
             name: "bootstrap",

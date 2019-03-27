@@ -7,7 +7,7 @@ var dbExceptions = require('../../exceptions/db.exceptions');
 var logger = require('../../utils/logger');
 
 // Mock packages data
-var data = require('./data/packages');
+var originalData = require('./data/packages');
 
 var utils = require('../utils');
 
@@ -17,6 +17,12 @@ function clone(item) {
 
 // Connector to the database
 function Connector() {
+    var data = clone(originalData);
+
+    this.reset = function() {
+        data = clone(originalData);
+    }
+
     var db = {
         collection: function(name) {
             return {
