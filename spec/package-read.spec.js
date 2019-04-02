@@ -1,10 +1,10 @@
 var request = require('request');
 var utils = require('./utils');
-var connector = require('./mocks/connector.mock');
-
+var MongoClient = require('./mocks/mongodb.mock').MongoClient;
+var mongodb = new MongoClient();
 describe("Package Read Tests", function() {
     beforeAll(function() {
-        connector.reset();
+        mongodb.reset();
     })
 
     function validateTestPackage(expect, response, body, done) {

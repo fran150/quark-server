@@ -1,12 +1,5 @@
 var Q = require('q');
 
-// Exceptions
-var dbExceptions = require('../../exceptions/db.exceptions');
-
-// Utils
-var logger = require('../../utils/logger');
-
-// Mock packages data
 var originalData = require('./data/packages');
 
 var utils = require('../utils');
@@ -16,7 +9,7 @@ function clone(item) {
 }
 
 // Connector to the database
-function Connector() {
+function MongoClient(url) {
     var data = clone(originalData);
 
     this.reset = function() {
@@ -66,22 +59,11 @@ function Connector() {
         }
     }
 
-    this.connect = function(url) {
-        return Q.Promise(function(resolve, reject) {
-            logger.info("Connecting to database");
-
-            if (url == "err") {
-                logger.error("Error connecting to the database");
-                reject(new dbExceptions.CantConnectToDbException(err));
-            } else {
-                logger.info("Connected to database");                    
-
-                resolve(db);
-            }
-        });
+    this.connect = function(callback) {
+        callback();
     }
 
-    this.db = function() {
+    this.db = function(dbName) {
         if (!db) {
             reject(new dbExceptions.CantConnectToDbException());
         } else {
@@ -90,4 +72,6 @@ function Connector() {
     }
 }
 
-module.exports = new Connector();
+module.exports = {
+    MongoClient: MongoClient
+}

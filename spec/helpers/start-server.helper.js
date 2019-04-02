@@ -3,7 +3,11 @@ var proxyquire = require('proxyquire');
 
 // Mock the octokit and mongodb libraries
 var octokitMock = require("../mocks/octokit.mock");
-var connectorMock = require("../mocks/connector.mock");
+var mongodb = require("../mocks/mongodb.mock");
+
+var connectorMock = proxyquire('../../data/connector', {
+    "mongodb": mongodb
+});
 
 // Get the data layer packages with mocked connectors
 var dataSource = proxyquire("../../data/packages.data", {
