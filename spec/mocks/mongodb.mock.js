@@ -1,19 +1,13 @@
 var Q = require('q');
 
-var originalData = require('./data/packages');
+var pkg = require('./data/packages');
 
 var utils = require('../utils');
 
-function clone(item) {
-    return JSON.parse(JSON.stringify(item));
-}
-
 // Connector to the database
 function MongoClient(url) {
-    var data = clone(originalData);
-
     this.reset = function() {
-        data = clone(originalData);
+        pkg.reset();
     }
 
     var db = {
@@ -23,7 +17,7 @@ function MongoClient(url) {
                     var result = new Array();
                     var names = query.name["$in"];
 
-                    var packages = clone(data);
+                    var packages = pkg.data;
 
                     for (var i = 0; i < names.length; i++) {
                         if (packages[names[i]]) {
@@ -39,19 +33,19 @@ function MongoClient(url) {
                 },
                 findOne: function(query) {
                     return Q.Promise(function(resolve, reject) {
-                        var packages = clone(data);
+                        var packages = pkg.data;
                         resolve(packages[query.name]);
                     });
                 },
                 insertOne: function(package) {
                     return Q.Promise(function(resolve, reject) {
-                        data[package.name] = package;
+                        pkg.data[package.name] = package;
                         resolve();
                     });                    
                 },
                 updateOne:function(package, query) {
                     return Q.Promise(function(resolve, reject) {
-                        utils.map(package, data[query["$set"].name]);
+                        utils.map(package, pkg.data[query["$set"].name]);
                         resolve();
                     });                    
                 }
@@ -60,15 +54,19 @@ function MongoClient(url) {
     }
 
     this.connect = function(callback) {
-        callback();
+        if (url == "mongodb://error:27017") {
+            callback("The specified database doesn't exists");
+        } else {
+            callback();
+        }        
     }
 
     this.db = function(dbName) {
-        if (!db) {
-            reject(new dbExceptions.CantConnectToDbException());
-        } else {
-            return db;
+        if (dbName == "error") {
+            return;
         }
+
+        return db;
     }
 }
 

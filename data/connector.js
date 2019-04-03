@@ -16,12 +16,16 @@ function Connector() {
     var client;
     var db;
 
-    this.connect = function(url) {
+    this.connect = function(url, dbName) {
         return Q.Promise(function(resolve, reject) {
             // If the database connection is not specified
             if (!url) {
                 // Set the url to the one specified in config.json
                 url = config.database.url;
+            }
+
+            if (!dbName) {
+                dbName = config.database.name;
             }
             
             logger.info("Connecting to database");
@@ -35,7 +39,7 @@ function Connector() {
                 } else {
                     logger.info("Connected to database");
                     
-                    db = client.db(config.database.name);                
+                    db = client.db(dbName);                
 
                     resolve(db);
                 }

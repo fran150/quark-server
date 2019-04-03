@@ -26,13 +26,24 @@ function OctokitMock() {
     // Repos object mock
     this.repos = {
         // Get the collaborators mockup
-        getCollaborators: function() {
-            return Q.Promise(function(resolve) {
-                resolve({
-                    data: [
-                        { login: "collaborator" }
-                    ]
-                })
+        getCollaborators: function(options) {
+            return Q.Promise(function(resolve, reject) {
+                if (options.login == "collaborator") {
+                    resolve({
+                        data: [
+                            { login: "collaborator" }
+                        ]
+                    })    
+                } else if (options.login == "empty") {
+                    resolve();
+                } else if (options.login == "john-spartan") {
+                    reject({
+                        code: 403
+                    })
+                
+                } else {
+                    reject("Error getting collaborators");
+                }
             });
         }
     }

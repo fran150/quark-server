@@ -4,7 +4,7 @@ var MongoClient = require('./mocks/mongodb.mock').MongoClient;
 var mongodb = new MongoClient();
 
 describe("Package register tests", function() {
-    beforeAll(function() {
+    beforeEach(function() {
         mongodb.reset();
     })
 
@@ -332,9 +332,59 @@ describe("Package register tests", function() {
 
             done();
         });
-    });    
+    });
+    
+    it("Must fail when the list of collaborators is empty", function(done) {
+        var testPackage = {
+            "name": "bootstrap",
+            "email": "panchi150@gmail.com",
+            "versions": {
+                "1.x": {
+                    "paths": {
+                        "test": "test"
+                    },
+                    "shims": {
+                        "test": ["test"]
+                    }
+                }
+            }
+        }
 
-    it("Must fail when user is not the package owner or collaborator of github repo", function(done) {
+        request.post(utils.getConfig('/package', testPackage, "empty"), function(error, response, body) {
+            expect(response.statusCode).toBe(403);
+
+            expect(body.type).toBe("CantGetCollaboratorsException");
+
+            done();
+        });
+    });          
+
+    it("Must fail when there is an error getting the list of collaborators", function(done) {
+        var testPackage = {
+            "name": "bootstrap",
+            "email": "panchi150@gmail.com",
+            "versions": {
+                "1.x": {
+                    "paths": {
+                        "test": "test"
+                    },
+                    "shims": {
+                        "test": ["test"]
+                    }
+                }
+            }
+        }
+
+        request.post(utils.getConfig('/package', testPackage, "lalala"), function(error, response, body) {
+            expect(response.statusCode).toBe(403);
+
+            expect(body.type).toBe("CantGetCollaboratorsException");
+
+            done();
+        });
+    });          
+
+    it("Must fail when user is not allowed to query the repo collaborators", function(done) {
         var testPackage = {
             "name": "bootstrap",
             "email": "panchi150@gmail.com",
@@ -358,7 +408,7 @@ describe("Package register tests", function() {
 
             done();
         });
-    });      
+    });
 
     it("Must allow insert when the user is collaborator of the repo", function(done) {
         var testPackage = {

@@ -3,7 +3,7 @@ var utils = require('./utils');
 var MongoClient = require('./mocks/mongodb.mock').MongoClient;
 var mongodb = new MongoClient();
 describe("Package Read Tests", function() {
-    beforeAll(function() {
+    beforeEach(function() {
         mongodb.reset();
     })
 

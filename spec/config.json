@@ -1,4 +1,10 @@
 {
+    "database": {
+        "url": "mongodb://localhost:27017",
+        "user": "",
+        "password": "",
+        "name": "qpm"
+    },
     "server": {
         "base": "http://127.0.0.1:3000",
         "config": {
